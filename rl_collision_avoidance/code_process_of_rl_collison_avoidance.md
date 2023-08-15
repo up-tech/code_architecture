@@ -5,7 +5,7 @@
 ---
 
 - Stage环境
-
+```
 ├── stage_ros-add_pose_and_crash
 │   ├── rviz
 │   │   └── stage.rviz
@@ -17,11 +17,10 @@
     ├── rink.png
     ├── stage1.world
     ├── stage2.world
-
----
+```
 
 - 主要代码
-
+```
 ├── circle_test.py
 ├── circle_world.py
 ├── model
@@ -39,8 +38,7 @@
 ├── single_agent_world.py
 ├── stage_world1.py
 ├── stage_world2.py
-
----
+```
 
 #### 训练过程（stage1）
 
