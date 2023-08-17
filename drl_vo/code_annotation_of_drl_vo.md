@@ -315,3 +315,16 @@ def step(self, action):
 def __init__(self, observation_space: gym.spaces.Box, features_dim:int = 256):
 ```
 
+---
+
+#### cmd_vel相关
+
+加粗字体为节点名
+
+**drl_vo_cmd** -> /drl_cmd_vel -> **mix_cmd_vel** -> /teleop_velocity_smoother/raw_cmd_vel -> **mobile_base_nodelet_manager** -> /mobile_base/commands/velocity -> **gazebo**
+
+dwa的速度一直在/move_base/cmd_vel发布，但是gazebo订阅的不是/move_base/cmd_vel，所以切换到dwa时需要改掉drl_vo发布的话题，然后把move_base发布的话题remap到/mobile_base/commands/velocity上。
+
+---
+
+#### DWA原理

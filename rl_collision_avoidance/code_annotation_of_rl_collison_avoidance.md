@@ -1,10 +1,10 @@
-### rl_collision_avoidance代码流程分析
+### rl_collision_avoidance code analysis
 
-#### 代码结构
+#### code architecture
 
 ---
 
-- Stage环境
+- Simulation environment - Stage
 ```
 ├── stage_ros-add_pose_and_crash
 │   ├── rviz
@@ -19,7 +19,7 @@
     ├── stage2.world
 ```
 
-- 主要代码
+- main code
 ```
 ├── circle_test.py
 ├── circle_world.py
@@ -40,9 +40,17 @@
 ├── stage_world2.py
 ```
 
-#### 训练过程（stage1）
+#### Training Process（stage1）
 
 ##### Observation
+
+$$
+o^t = [o_z^t + o_g^t + o_v^t]
+$$
+
+- o<sub>z</sub><sup>t</sup> : raw 2D laser measurements about surrounding enviroment
+- o<sub>g</sub><sup>t</sup> : relative goal position (the coordinates of the goal in the robot local polar coordinate frame)
+- o<sub>v</sub><sup>t</sup> : self current velocity
 
 ```python
 # 代码路径：rl-collision-avoidance/ppo_stage1.py
@@ -89,6 +97,22 @@ def get_local_goal(self):
 ```
 
 ##### Reward and Terminal
+
+- reward
+
+$$
+r_i^t = (g_r)_i^t + (c_r)_i^t + (w_r)_i^t
+$$
+
+(g<sub>r</sub>)<sub>i</sub><sup>t</sup> : robot is awarded by this part for reaching its goal or approaching goal
+
+(c<sub>r</sub>)<sub>i</sub><sup>t</sup> : robot is penalized by this part for colliding with other robots or static obstacles
+
+(w<sub>r</sub>)<sub>i</sub><sup>t</sup> : robot is penalized by this part for large angular velocity
+
+- terminal
+
+Terminal when collision or reach the goal
 
 ```python
 # 代码路径：rl-collision-avoidance/ppo_stage1.py
@@ -137,6 +161,8 @@ def get_reward_and_terminate(self, t):
 
 - Network architecture Setup
 
+![](/home/lc/Documents/code_architecture/rl_collision_avoidance/img/network_of_collision_avoidance.jpg)
+
 ```python
 # 代码路径：rl-collision-avoidance/model/net.py
 class CNNPolicy(nn.Module):
@@ -160,6 +186,49 @@ class CNNPolicy(nn.Module):
         self.crt_fc1 = nn.Linear(128*32, 256)
         self.crt_fc2 = nn.Linear(256+2+2, 128)
         self.critic = nn.Linear(128, 1)
+
+# 关键函数：forward()
+# input: observation\local goal\self speed
+def forward(self, x, goal, speed):
+    """
+        returns value estimation, action, log_action_prob
+    """
+    # action
+    a = F.relu(self.act_fea_cv1(x))
+    a = F.relu(self.act_fea_cv2(a))
+    a = a.view(a.shape[0], -1)
+    a = F.relu(self.act_fc1(a))
+
+    a = torch.cat((a, goal, speed), dim=-1)
+    a = F.relu(self.act_fc2(a))
+    #两个(128,1)的全连接层
+    #激活函数分别为sigmod funchtion和hyperbolic tangent function
+    #约束输出在(0.0, 1.0)和(-1.0, 1,0)
+    #完成input observation maps to vector
+    mean1 = F.sigmoid(self.actor1(a))
+    mean2 = F.tanh(self.actor2(a))
+    mean = torch.cat((mean1, mean2), dim=-1)
+    #将输出赋值给可训练的参数logstd
+    logstd = self.logstd.expand_as(mean)
+    std = torch.exp(logstd)
+    #final action为平均值为mean，标准差为std的正态分布的采样
+    action = torch.normal(mean, std)
+
+    # action prob on log scale
+    # 调用utils.py计算采样的高斯密度
+    logprob = log_normal_density(action, mean, std=std, log_std=logstd)
+
+    # value
+    # 价值网络的结构和action网络一致，但只有一维输出
+    v = F.relu(self.crt_fea_cv1(x))
+    v = F.relu(self.crt_fea_cv2(v))
+    v = v.view(v.shape[0], -1)
+    v = F.relu(self.crt_fc1(v))
+    v = torch.cat((v, goal, speed), dim=-1)
+    v = F.relu(self.crt_fc2(v))
+    v = self.critic(v)
+
+    return v, action, logprob, mean
 ```
 
 - Run
@@ -363,55 +432,41 @@ def generate_train_data(rewards, gamma, values, last_value, dones, lam):
     return targets, advs
 ```
 
-- Forward
-
-```python
-# 代码路径：rl-collision-avoidance/net.py
-
-# 关键函数：forward()
-# input: observation\local goal\self speed
-def forward(self, x, goal, speed):
-    """
-        returns value estimation, action, log_action_prob
-    """
-    # action
-    a = F.relu(self.act_fea_cv1(x))
-    a = F.relu(self.act_fea_cv2(a))
-    a = a.view(a.shape[0], -1)
-    a = F.relu(self.act_fc1(a))
-
-    a = torch.cat((a, goal, speed), dim=-1)
-    a = F.relu(self.act_fc2(a))
-    #两个(128,1)的全连接层
-    #激活函数分别为sigmod funchtion和hyperbolic tangent function
-    #约束输出在(0.0, 1.0)和(-1.0, 1,0)
-    #完成input observation maps to vector
-    mean1 = F.sigmoid(self.actor1(a))
-    mean2 = F.tanh(self.actor2(a))
-    mean = torch.cat((mean1, mean2), dim=-1)
-    #将输出赋值给可训练的参数logstd
-    logstd = self.logstd.expand_as(mean)
-    std = torch.exp(logstd)
-    #final action为平均值为mean，标准差为std的正态分布的采样
-    action = torch.normal(mean, std)
-
-    # action prob on log scale
-    # 调用utils.py计算采样的高斯密度
-    logprob = log_normal_density(action, mean, std=std, log_std=logstd)
-
-    # value
-    # 价值网络的结构和action网络一致，但只有一维输出
-    v = F.relu(self.crt_fea_cv1(x))
-    v = F.relu(self.crt_fea_cv2(v))
-    v = v.view(v.shape[0], -1)
-    v = F.relu(self.crt_fc1(v))
-    v = torch.cat((v, goal, speed), dim=-1)
-    v = F.relu(self.crt_fc2(v))
-    v = self.critic(v)
-
-    return v, action, logprob, mean
-```
-
 ---
 
-#### 测试过程
+#### Test
+
+```python
+# 代码路径：rl-collision-avoidance/circle_test.py
+
+if __name__ == '__main__':
+
+    #前面的代码内容和执行training的时候代码是相同的
+    
+    # 加载训练好的模型参数
+    file = policy_path + '/stage2.pth'
+    if os.path.exists(file):
+        state_dict = torch.load(file)
+        policy.load_state_dict(state_dict)
+        
+    try:
+        enjoy(comm=comm, env=env, policy=policy, action_bound=action_bound)
+
+ #关键函数enjoy()
+def enjoy(comm, env, policy, action_bound):
+
+    #和trian相比主要有两点不同
+    #1.generate_action时使用的generate_action_no_sampling()函数
+    #  ；网络输出的mean action不需要经过高斯分布的采样，直接给scatter约束范围后给机器人执行
+    #2.terminal发生时，速度指令的线速度设置为0给机器人执行
+    
+    # generate actions at rank==0
+    mean, scaled_action =generate_action_no_sampling(env=env, state_list=state_list,
+                                           policy=policy, action_bound=action_bound)
+
+    # execute actions
+    real_action = comm.scatter(scaled_action, root=0)
+    if terminal == True:
+        real_action[0] = 0
+```
+
