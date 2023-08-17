@@ -37,7 +37,7 @@ The basic idea of the Dynamic Window Approach (DWA) algorithm is as follows:
 | alignment_costs_   | MapGridCostFunction     | 尽可能的让机器人保持在nose path上。   |
 | twirling_costs_    | TwirlingCostFunction    | 尽量不让机器人原地打转。              |
 
-- 每一个速度采样都需要计算以上几类score，然后选择比较所有项score的和，结果最大的速度给机器人执行
+- 每一个速度采样都需要计算以上几类score，然后比较所有项score的和，选择score结果最大的速度给机器人执行
 
 ---
 
