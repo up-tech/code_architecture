@@ -34,7 +34,7 @@ $$
 
 #### observation
 
-![](/home/lc/Documents/code_architecture/drl_vo/image/observation.png)
+![](image/observation.png)
 
 - annotation about down size process did not add yet
 - get observation
@@ -382,7 +382,7 @@ def step(self, action):
 
 #### network structure
 
-![](/home/lc/Documents/code_architecture/drl_vo/image/network_structure.png)
+![](image/network_structure.png)
 
 ```python
 #file location: drl_vo_nav/drl_vo/src/custom_cnn_full.py
