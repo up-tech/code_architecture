@@ -222,6 +222,12 @@ define observation/reward/action
 
 ---
 
+#### Experiment
+
+todo: finish this part
+
+---
+
 #### Tips
 
 #### cmd_vel (pub velocity cmd to gazebo)

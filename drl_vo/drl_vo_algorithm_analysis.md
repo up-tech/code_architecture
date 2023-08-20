@@ -36,7 +36,7 @@ $$
 
 ![](image/observation.png)
 
-- annotation about down size process did not add yet
+- todo annotation about down size process did not add yet
 - get observation
 
 ```python
@@ -99,8 +99,10 @@ def _get_observation(self):
 ```python
 #file location: drl_vo_nav/drl_vo/src/cnn_data_pub.py
 
+#pub state of environment at rate of 20Hz
+# todo check how to get the trajectory of pedstrian sim and test
 def timer_callback(self, event):  
-    # generate the trajectory of pedstrians:
+    # generate the trajectory of pedestrians:
     self.ped_pos_map = self.ped_pos_map_tmp
     self.scan.append(self.scan_tmp.tolist())
     self.scan_all = self.scan_all_tmp
@@ -157,7 +159,7 @@ def ped_callback(self, trackPed_msg):
                 # cartesian velocity map
                 self.ped_pos_map_tmp[0,r,c] = vx
                 self.ped_pos_map_tmp[1,r,c] = vy
-#two [80, 80] matrix resolution to real is 0.25
+#two [80, 80] matrix, resolution to real is 0.25
 #position of column and row represent positon of pedestrian pos
 #frist matrix contain linear velocity of pedestrian
 #second matrix contain angular velocity of pedestrian
@@ -199,6 +201,15 @@ def goal_callback(self, goal_msg):
 ```python
 #file location: drl_vo_nav/drl_vo/src/turtlebot_gym/turtlebot_gym/envs/drl_nav_env.py
 
+#robot paramters value
+self.ROBOT_RADIUS = 0.3
+self.GOAL_RADIUS = 0.3 #0.3
+self.DIST_NUM = 10
+
+# vo algorithm:
+#this is a rostopic msg type
+self.mht_peds = TrackedPersons()
+
 #totoal rewards
 def _compute_reward(self):
     """Calculates the reward to give based on the observations given.
@@ -223,6 +234,48 @@ def _compute_reward(self):
     #rospy.logwarn("Current Velocity: \ncurr_vel = {}".format(self.curr_vel.linear.x))
     rospy.logwarn("Compute reward done. \nreward = {}".format(reward))
     return reward
+```
+
+- details about mht_peds (vo msg)
+
+```python
+# details about vo msg
+
+#file location: drl_vo_nav/drl_vo/src/turtlebot_gym/turtlebot_gym/envs/drl_nav_env.py
+self._ped_sub = rospy.Subscriber("/track_ped", TrackedPersons, self._ped_callback)
+# Callback function for the pedestrian subscriber
+def _ped_callback(self, trackPed_msg): 
+    self.mht_peds = trackPed_msg
+
+#file location: src/pedsim_ros_with_gazebo/pedsim_msgs/msg/TrackedPersons.msg
+
+#data tpye of vo msg
+Header              header      # Header containing timestamp etc. of this message
+TrackedPerson[]     tracks      # All persons that are currently being tracked
+
+#file location: src/pedsim_ros_with_gazebo/pedsim_msgs/msg/TrackedPersons.msg
+
+# Message defining a tracked person
+#
+uint64      track_id        # unique identifier of the target, consistent over time
+bool        is_occluded     # if the track is currently not observable in a physical way
+bool        is_matched      # if the track is currently matched by a detection
+uint64      detection_id    # id of the corresponding detection in the current cycle (undefined if occluded)
+duration    age             # age of the track
+
+# The following fields are extracted from the Kalman state x and its covariance C
+
+geometry_msgs/PoseWithCovariance    pose
+# pose of the track (z value and orientation might not be set, check if corresponding variance on diagonal is > 99999)
+
+geometry_msgs/TwistWithCovariance   twist
+# velocity of the track (z value and rotational velocities might not be set, check if corresponding variance on diagonal is > 99999)
+```
+
+- goal reached reward
+
+```python
+#file location: drl_vo_nav/drl_vo/src/turtlebot_gym/turtlebot_gym/envs/drl_nav_env.py
 
 def _goal_reached_reward(self, r_arrival, r_waypoint):
     """
@@ -242,26 +295,31 @@ def _goal_reached_reward(self, r_arrival, r_waypoint):
     # t-1 id:
     t_1 = self.num_iterations % self.DIST_NUM
     # initialize the dist_to_goal_reg:
+    # num_iterations will be setted to 0, when a new goal coming or env reset
     if(self.num_iterations == 0):
         self.dist_to_goal_reg = np.ones(self.DIST_NUM)*dist_to_goal
 
-    rospy.logwarn("distance_to_goal_reg = {}".format(self.dist_to_goal_reg[t_1]))
-    rospy.logwarn("distance_to_goal = {}".format(dist_to_goal))
     max_iteration = 512 #800 
     # reward calculation:
     if(dist_to_goal <= self.GOAL_RADIUS):  # goal reached: t = T
         reward = r_arrival
+        #num_iterations plus 1 when one step func done
     elif(self.num_iterations >= max_iteration):  # failed to the goal
         reward = -r_arrival
     else:   # on the way
+        #compare dist to goal between current and 0.5s before
         reward = r_waypoint*(self.dist_to_goal_reg[t_1] - dist_to_goal)
 
     # storage the robot pose at t-1:
-    #if(self.num_iterations % 40 == 0):
     self.dist_to_goal_reg[t_1] = dist_to_goal #self.curr_pose
 
-    rospy.logwarn("Goal reached reward: {}".format(reward))
     return reward
+```
+
+- collision reward
+
+```python
+#file location: drl_vo_nav/drl_vo/src/turtlebot_gym/turtlebot_gym/envs/drl_nav_env.py
 
 def _obstacle_collision_punish(self, scan, r_scan, r_collision):
     """
@@ -270,8 +328,9 @@ def _obstacle_collision_punish(self, scan, r_scan, r_collision):
     :param k reward constant
     :return: returns reward colliding with obstacles
     """
+    # get minimum data from currently one frame of scan
     min_scan_dist = np.amin(scan[scan!=0])
-    #if(self.bump_flag == True): #or self.pos_valid_flag == False):
+
     if(min_scan_dist <= self.ROBOT_RADIUS and min_scan_dist >= 0.02):
         reward = r_collision
     elif(min_scan_dist < 3*self.ROBOT_RADIUS):
@@ -279,8 +338,13 @@ def _obstacle_collision_punish(self, scan, r_scan, r_collision):
     else:
         reward = 0.0
 
-    rospy.logwarn("Obstacle collision reward: {}".format(reward))
     return reward
+```
+
+- angular velocity reward
+
+```python
+#file location: drl_vo_nav/drl_vo/src/turtlebot_gym/turtlebot_gym/envs/drl_nav_env.py
 
 def _angular_velocity_punish(self, w_z,  r_rotation, w_thresh):
     """
@@ -297,6 +361,12 @@ def _angular_velocity_punish(self, w_z,  r_rotation, w_thresh):
 
     rospy.logwarn("Angular velocity punish reward: {}".format(reward))
     return reward
+```
+
+- theta reward
+
+```python
+#file location: drl_vo_nav/drl_vo/src/turtlebot_gym/turtlebot_gym/envs/drl_nav_env.py
 
 def _theta_reward(self, goal, mht_peds, v_x, r_angle, angle_thresh):
     """
@@ -352,6 +422,99 @@ def _theta_reward(self, goal, mht_peds, v_x, r_angle, angle_thresh):
     return reward
 ```
 
+#### action
+
+```python
+#file location: drl_vo_nav/drl_vo/src/turtlebot_gym/turtlebot_gym/envs/drl_nav_env.py
+
+def _take_action(self, action):
+    """
+    action: 2-d numpy array.
+    """
+    rospy.logdebug("TurtleBot2 Base Twist Cmd>>\nlinear: {}\nangular: {}".format(action[0], action[1]))
+    cmd_vel = Twist()
+
+    # MaxAbsScaler:
+    vx_min = 0
+    vx_max = 0.5
+    vz_min = -2 #-3
+    vz_max = 2 #3
+    cmd_vel.linear.x = (action[0] + 1) * (vx_max - vx_min) / 2 + vx_min
+    cmd_vel.angular.z = (action[1] + 1) * (vz_max - vz_min) / 2 + vz_min
+    #self._check_publishers_connection()
+
+    rate = rospy.Rate(20)
+    for _ in range(1):
+        self._cmd_vel_pub.publish(cmd_vel)
+        #rospy.logdebug("cmd_vel: \nlinear: {}\nangular: {}".format(cmd_vel.linear.x,
+        #                                                    cmd_vel.angular.z))
+        rate.sleep()
+
+    # self._cmd_vel_pub.publish(cmd_vel)
+    rospy.logwarn("cmd_vel: \nlinear: {}\nangular: {}".format(cmd_vel.linear.x, cmd_vel.angular.z))
+    
+```
+
+#### terminal
+
+```python
+#file location: drl_vo_nav/drl_vo/src/turtlebot_gym/turtlebot_gym/envs/drl_nav_env.py
+
+def _is_done(self, reward):
+    """
+    Checks if end of episode is reached. It is reached,
+    if the goal is reached,
+    if the robot collided with obstacle
+    if the reward function returns a high negative value.
+    if maximum number of iterations is reached,
+    :param current state
+    :return: True if self._episode_done
+    """
+    # updata the number of iterations:
+    self.num_iterations += 1
+
+    # 1) Goal reached?
+    # distance to goal:
+    dist_to_goal = np.linalg.norm(
+        np.array([
+        self.curr_pose.position.x - self.goal_position.x,
+        self.curr_pose.position.y - self.goal_position.y,
+        self.curr_pose.position.z - self.goal_position.z
+        ])
+    )
+    if(dist_to_goal <= self.GOAL_RADIUS):
+        # reset the robot velocity to 0:
+        self._cmd_vel_pub.publish(Twist())
+        self._episode_done = True
+        return True
+
+    # 2) Obstacle collision?
+    scan = self.cnn_data.scan[-720:]
+    min_scan_dist = np.amin(scan[scan!=0])
+    if(min_scan_dist <= self.ROBOT_RADIUS and min_scan_dist >= 0.02):
+        self.bump_num += 1
+
+    # stop and reset if more than 3 collisions: 
+    if(self.bump_num >= 3):
+        # reset the robot velocity to 0:
+        self._cmd_vel_pub.publish(Twist())
+        self.bump_num = 0
+        self._episode_done = True
+        self._reset = True # reset the simulation world
+        return True
+
+    # 4) maximum number of iterations?
+    max_iteration = 512
+    if(self.num_iterations > max_iteration):
+        # reset the robot velocity to 0:
+        self._cmd_vel_pub.publish(Twist())
+        self._episode_done = True
+        self._reset = True
+        return True
+
+    return False #self._episode_done
+```
+
 #### step
 
 - Updates an environment with actions returning the next agent observation, the reward for taking that actions, if the environment has terminated or truncated due to the latest action and information from the environment about the step, i.e. metrics, debug info
@@ -359,6 +522,11 @@ def _theta_reward(self, goal, mht_peds, v_x, r_angle, angle_thresh):
 ```python
 #file location: drl_vo_nav/drl_vo/src/turtlebot_gym/turtlebot_gym/envs/drl_nav_env.py
 
+#some interface
+# self.unpause = rospy.ServiceProxy('/gazebo/unpause_physics', Empty)
+# self.pause = rospy.ServiceProxy('/gazebo/pause_physics', Empty)
+
+#todo: did not find where the action come from yet.
 #step
 def step(self, action):
     """
@@ -366,16 +534,45 @@ def step(self, action):
     obs, reward, done, info = env.step(action)
     """
     # Convert the action num to movement action
+    
+    # call service to keep gazebo simulation running
     self.gazebo.unpauseSim()
+    # using Max-Abs scale linear v to (0, 0.5), angular v to (-2.0, 2.0)
     self._take_action(action)
+    # call service to pause gazebo simulation 
     self.gazebo.pauseSim()
+    
+    # get obs for next step
     obs = self._get_observation()
+    # get this turn's reward
     reward = self._compute_reward()
+    # cheak if termination conditions were satisfied
+    # if done is true env.reset() will be call
+    # pedestrians pose will be reset to initial pose
     done = self._is_done(reward)
-    # self._done_pub.publish(done)
+    # print robot current pose information and goal pose information
     info = self._post_information()
-    #print('info=', info, 'reward=', reward, 'done=', done)
+
     return obs, reward, done, info
+```
+
+#### action space
+
+```python
+#file location: drl_vo_nav/drl_vo/src/turtlebot_gym/turtlebot_gym/envs/drl_nav_env.py
+
+# action space
+self.high_action = np.array([1, 1])
+self.low_action = np.array([-1, -1])
+self.action_space = spaces.Box(low=self.low_action, high=self.high_action, dtype=np.float32)
+```
+
+#### observation space - using to init network
+
+```python
+#file location: drl_vo_nav/drl_vo/src/turtlebot_gym/turtlebot_gym/envs/drl_nav_env.py
+
+self.observation_space = spaces.Box(low=-1, high=1, shape=(19202,), dtype=np.float32)
 ```
 
 ---
@@ -388,6 +585,21 @@ def step(self, action):
 #file location: drl_vo_nav/drl_vo/src/custom_cnn_full.py
 
 #initialize network structure
+# function: init
+#
+# arguments: observation_space: (gym.Space)
+#            features_dim: (int) Number of features extracted.
+#            block: block type (Bottleneck)
+#            layers: the number of block layers
+#
+# return: none
+#
+# This method is the main function.
+#
+
+# inherit BaseFeaturesExtractor from stable_baselines3
+class CustomCNN(BaseFeaturesExtractor):
+
 def __init__(self, observation_space: gym.spaces.Box, features_dim:int = 256):
     # network parameters:
     block = Bottleneck  #ResNet block
@@ -618,8 +830,9 @@ def forward(self, observations: torch.Tensor) -> torch.Tensor:
 ### Training process
 
 ```python
-# create ros node:
-rospy.init_node('env_test', anonymous=True, log_level=rospy.WARN) #log_level=rospy.ERROR)   
+#file location: drl_vo_nav/drl_vo/src/drl_vo_train.py
+
+# PPO is the implementation of SB3
 
 # Create log dir
 log_dir = rospy.get_param('~log_dir', "./runs/")
@@ -628,10 +841,11 @@ os.makedirs(log_dir, exist_ok=True)
 # Create and wrap the environment
 env = gym.make('drl-nav-v0')
 env = Monitor(env, log_dir) #, allow_early_resets=True)  # in order to get rollout log data
-# env = DummyVecEnv([lambda: env])
+# reset gym env and get frist observation
 obs = env.reset()
 
 # policy parameters:
+# using for raw training
 policy_kwargs = dict(
     features_extractor_class=CustomCNN,
     features_extractor_kwargs=dict(features_dim=256),
@@ -639,8 +853,11 @@ policy_kwargs = dict(
 )
 
 # raw training:
+# generate model when frist execute traning process
+
 #model = PPO("CnnPolicy", env, policy_kwargs=policy_kwargs, learning_rate=1e-3, verbose=2, tensorboard_log=log_dir, n_steps=512, n_epochs=10, batch_size=128) #, gamma=0.96, ent_coef=0.1, vf_coef=0.4) 
 
+# load model if we already have a trained model
 # continue training:
 kwargs = {'tensorboard_log':log_dir, 'verbose':2, 'n_epochs':10, 'n_steps':512, 'batch_size':128,'learning_rate':5e-5}
 model_file = rospy.get_param('~model_file', "./model/drl_pre_train.zip")
@@ -656,6 +873,200 @@ print("Training finished.")
 env.close()
 ```
 
+#### PPO
+
+todo: finish annotation of ppo in stable_baselines2 later
+
+```python
+#file location: lib/python3.x/site-packages/stable_baselines3/ppo/ppo.py
+
+def __init__(
+    self,
+    policy: Union[str, Type[ActorCriticPolicy]],
+    env: Union[GymEnv, str],
+    learning_rate: Union[float, Schedule] = 3e-4,
+    n_steps: int = 2048,
+    batch_size: Optional[int] = 64,
+    n_epochs: int = 10,
+    gamma: float = 0.99,
+    gae_lambda: float = 0.95,
+    clip_range: Union[float, Schedule] = 0.2,
+    clip_range_vf: Union[None, float, Schedule] = None,
+    ent_coef: float = 0.0,
+    vf_coef: float = 0.5,
+    max_grad_norm: float = 0.5,
+    use_sde: bool = False,
+    sde_sample_freq: int = -1,
+    target_kl: Optional[float] = None,
+    tensorboard_log: Optional[str] = None,
+    create_eval_env: bool = False,
+    policy_kwargs: Optional[Dict[str, Any]] = None,
+    verbose: int = 0,
+    seed: Optional[int] = None,
+    device: Union[th.device, str] = "auto",
+    _init_setup_model: bool = True,
+):
+
+    super(PPO, self).__init__(
+        policy,
+        env,
+        learning_rate=learning_rate,
+        n_steps=n_steps,
+        gamma=gamma,
+        gae_lambda=gae_lambda,
+        ent_coef=ent_coef,
+        vf_coef=vf_coef,
+        max_grad_norm=max_grad_norm,
+        use_sde=use_sde,
+        sde_sample_freq=sde_sample_freq,
+        tensorboard_log=tensorboard_log,
+        policy_kwargs=policy_kwargs,
+        verbose=verbose,
+        device=device,
+        create_eval_env=create_eval_env,
+        seed=seed,
+        _init_setup_model=False,
+        supported_action_spaces=(
+            spaces.Box,
+            spaces.Discrete,
+            spaces.MultiDiscrete,
+            spaces.MultiBinary,
+        ),
+    )
+
+    # Sanity check, otherwise it will lead to noisy gradient and NaN
+    # because of the advantage normalization
+    assert (
+        batch_size > 1
+    ), "`batch_size` must be greater than 1. See https://github.com/DLR-RM/stable-baselines3/issues/440"
+
+    if self.env is not None:
+        # Check that `n_steps * n_envs > 1` to avoid NaN
+        # when doing advantage normalization
+        buffer_size = self.env.num_envs * self.n_steps
+        assert (
+            buffer_size > 1
+        ), f"`n_steps * n_envs` must be greater than 1. Currently n_steps={self.n_steps} and n_envs={self.env.num_envs}"
+        # Check that the rollout buffer size is a multiple of the mini-batch size
+        untruncated_batches = buffer_size // batch_size
+        if buffer_size % batch_size > 0:
+            warnings.warn(
+                f"You have specified a mini-batch size of {batch_size},"
+                f" but because the `RolloutBuffer` is of size `n_steps * n_envs = {buffer_size}`,"
+                f" after every {untruncated_batches} untruncated mini-batches,"
+                f" there will be a truncated mini-batch of size {buffer_size % batch_size}\n"
+                f"We recommend using a `batch_size` that is a factor of `n_steps * n_envs`.\n"
+                f"Info: (n_steps={self.n_steps} and n_envs={self.env.num_envs})"
+            )
+    self.batch_size = batch_size
+    self.n_epochs = n_epochs
+    self.clip_range = clip_range
+    self.clip_range_vf = clip_range_vf
+    self.target_kl = target_kl
+
+    if _init_setup_model:
+        self._setup_model()
+```
+
 ---
 
 ### Testing process
+
+```python
+#file location: drl_vo_nav/drl_vo/src/drl_vo_inference.py
+
+class DrlInference:
+    # Constructor
+    def __init__(self):
+        # initialize data:  
+        self.ped_pos = [] #np.ones((3, 20))*20.
+        self.scan = [] #np.zeros((3, 720))
+        self.goal = [] #np.zeros((3, 2))
+        self.vx = 0
+        self.wz = 0
+        self.model = None
+
+        # load model:
+        model_file = rospy.get_param('~model_file', "./model/drl_vo.zip")
+        self.model = PPO.load(model_file)
+        print("Finish loading model.")
+
+        # initialize ROS objects
+        self.cnn_data_sub = rospy.Subscriber("/cnn_data", CNN_data, self.cnn_data_callback)
+        self.cmd_vel_pub = rospy.Publisher('/drl_cmd_vel', Twist, queue_size=10, latch=False)
+
+    # Callback function for the cnn_data subscriber
+    def cnn_data_callback(self, cnn_data_msg):
+        self.ped_pos = cnn_data_msg.ped_pos_map
+        self.scan = cnn_data_msg.scan
+        self.goal = cnn_data_msg.goal_cart
+        cmd_vel = Twist()
+
+        # minimum distance:
+        scan = np.array(self.scan[-540:-180])
+        scan = scan[scan!=0]
+        if(scan.size!=0):
+            min_scan_dist = np.amin(scan)
+        else:
+            min_scan_dist = 10
+
+        # if the goal is close to the robot:
+        if(np.linalg.norm(self.goal) <= 0.9):  # goal margin
+                cmd_vel.linear.x = 0
+                cmd_vel.angular.z = 0
+        elif(min_scan_dist <= 0.4): # obstacle margin
+            cmd_vel.linear.x = 0
+            cmd_vel.angular.z = 0.7
+        else:
+            # MaxAbsScaler:
+            v_min = -2 
+            v_max = 2 
+            self.ped_pos = np.array(self.ped_pos, dtype=np.float32)
+            self.ped_pos = 2 * (self.ped_pos - v_min) / (v_max - v_min) + (-1)
+
+            # MaxAbsScaler:
+            temp = np.array(self.scan, dtype=np.float32)
+            scan_avg = np.zeros((20,80))
+            for n in range(10):
+                scan_tmp = temp[n*720:(n+1)*720]
+                for i in range(80):
+                    scan_avg[2*n, i] = np.min(scan_tmp[i*9:(i+1)*9])
+                    scan_avg[2*n+1, i] = np.mean(scan_tmp[i*9:(i+1)*9])
+            
+            scan_avg = scan_avg.reshape(1600)
+            scan_avg_map = np.matlib.repmat(scan_avg,1,4)
+            self.scan = scan_avg_map.reshape(6400)
+            s_min = 0
+            s_max = 30
+            self.scan = 2 * (self.scan - s_min) / (s_max - s_min) + (-1)
+            
+            # goal:
+            # MaxAbsScaler:
+            g_min = -2
+            g_max = 2
+            goal_orignal = np.array(self.goal, dtype=np.float32)
+            self.goal = 2 * (goal_orignal - g_min) / (g_max - g_min) + (-1)
+            #self.goal = self.goal.tolist()
+
+            # observation:
+            self.observation = np.concatenate((self.ped_pos, self.scan, self.goal), axis=None) 
+
+            #self.inference()
+            #link base_class.py of SB3 and return through function _predict() from policies.py of SB3 
+            action, _states = self.model.predict(self.observation)
+            # calculate the goal velocity of the robot and send the command
+            # MaxAbsScaler:
+            vx_min = 0
+            vx_max = 0.5
+            vz_min = -2 # -0.7
+            vz_max = 2 # 0.7
+            cmd_vel.linear.x = (action[0] + 1) * (vx_max - vx_min) / 2 + vx_min
+            cmd_vel.angular.z = (action[1] + 1) * (vz_max - vz_min) / 2 + vz_min
+        
+        if not np.isnan(cmd_vel.linear.x) and not np.isnan(cmd_vel.angular.z): # ensure data is valid
+            self.cmd_vel_pub.publish(cmd_vel)
+
+    #
+    # end of function
+```
+
