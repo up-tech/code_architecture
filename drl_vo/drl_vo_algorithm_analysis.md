@@ -43,45 +43,46 @@ $$
 $$
 o^t = [l^t, p^t, g^t)]
 $$
-**l<sup>t</sup> :** lidar history
+ **l<sup>t</sup> :** lidar history
 
 **p<sup>t</sup>** : pedestrian kinematics
 
 **g<sup>t</sup>** : subgoal position
 
-- **TODO** annotation about down size and scale scan data did not add yet
-
-  - scale v to [0, 0.5]
-
-  - scale w to [-2.0, 2.0]
+- MinAbsScaler
 
 $$
-o^t = 2 * (o^t - o_\min^t)/(o_\max^t - o_\min^t) - 1
+\mathbf{o}^t=2 \frac{\mathbf{o}^t-\mathbf{o}_{\min }^t}{\mathbf{o}_{\max }^t-\mathbf{o}_{\min }^t}-1
 $$
+
+![](image/get_observation.png)
 
 ```python
 #file location: drl_vo_nav/drl_vo/src/turtlebot_gym/turtlebot_gym/envs/drl_nav_env.py
 
-class DRLNavEnv(gym.Env):#inherit gym.Env
+#get observation
+#calling by step() and reset() in drl_nav_env.py
 
-#observation
 def _get_observation(self):
     #form obaservation process and 
     #1. ped pose process
     #2. scan proscess
     #declare how to get observation and obsercations data type
-    self.ped_pos = self.cnn_data.ped_pos_map  #variable type float32[], contain 1280 elements in general
-    self.scan = self.cnn_data.scan            #variable type float32[], contain 720*10 elements in general
-    self.goal = self.cnn_data.goal_cart       #variable type float32[], contain 2 elements in general
+    self.ped_pos = self.cnn_data.ped_pos_map  #variable type float32[], contain 12800 elements
+    self.scan = self.cnn_data.scan            #variable type float32[], contain 720*10 elements
+    self.goal = self.cnn_data.goal_cart       #variable type float32[], contain 2 elements
     
     self.vel = self.cnn_data.vel
 
     # ped map:
     # MaxAbsScaler:
+    # normalize v of ped to [-1, 1]
+    # normalize w of ped to [-1, 1]
     v_min = -2
     v_max = 2
     self.ped_pos = np.array(self.ped_pos, dtype=np.float32)
     self.ped_pos = 2 * (self.ped_pos - v_min) / (v_max - v_min) + (-1)
+    # got 1-D array with 12800 elements
 
     # scan map:
     # MaxAbsScaler:
@@ -99,6 +100,8 @@ def _get_observation(self):
     s_min = 0
     s_max = 30
     self.scan = 2 * (self.scan - s_min) / (s_max - s_min) + (-1)
+    # normalize each num to [-1, 1]
+    # got 1-D array with 6400 elements
 
     # goal:
     # MaxAbsScaler:
@@ -106,18 +109,42 @@ def _get_observation(self):
     g_max = 2
     self.goal = np.array(self.goal, dtype=np.float32)
     self.goal = 2 * (self.goal - g_min) / (g_max - g_min) + (-1)
-    #self.goal = self.goal.tolist()
+    # got 1-D array with 2 elements
 
     # observation:
-    self.observation = np.concatenate((self.ped_pos, self.scan, self.goal), axis=None) 
+    self.observation = np.concatenate((self.ped_pos, self.scan, self.goal), axis=None)
+    # 1-D array with (12800 + 6400 + 2) elements as observation
     return self.observation
-
 ```
 
 **observation process**
 
-- from rostopic collecting history scan message(0.5 sec\10 frames default)
-- **TODO** check how to get the trajectory of pedstrian from test
+- sub topics
+- merge and process topics (ped/scan/goal) into cnn_data
+
+![](image/topics_sub.png)
+
+```python
+#file location: drl_vo_nav/drl_vo/src/cnn_data_pub.py
+
+# topic track_ped contains ped's position and velocity w.r.t. robot
+
+# ped's data provide by pedsim in simulation
+# ped's positon and velocity was translated from map frame to robot frame
+# translation process in file drl_vo_nav/drl_vo/src/track_ped_pub.py
+self.ped_sub = rospy.Subscriber("/track_ped", TrackedPersons, self.ped_callback)
+
+# prune scan data from 270 deg to 180 deg (keep the middle of one scan)
+self.scan_sub = rospy.Subscriber("/scan", LaserScan, self.scan_callback)
+
+# publish by file drl_vo_nav/drl_vo/src/pure_pursuit.py
+# got a goal from path which distance(w.r.t. robot) is less than 2m
+self.goal_sub = rospy.Subscriber("/cnn_goal", Point, self.goal_callback)
+```
+
+- collecting history scan message(0.5 sec\10 frames default)
+
+![](image/timer_callback.png)
 
 ```python
 #file location: drl_vo_nav/drl_vo/src/cnn_data_pub.py
@@ -133,7 +160,7 @@ def timer_callback(self, event):
     if(self.ts_cnt == NUM_TP): # default NUM_TP = 10, ped_pos up-to-data, scan contain 10 frames
         # publish cnn data:
         cnn_data = CNN_data()
-        #process ped_pos from 3D array (2, 80, 80) to 1D array (1280)
+        #process ped_pos from 3D array (2, 80, 80) to 1D array (12800)
         cnn_data.ped_pos_map = [float(val) for sublist in self.ped_pos_map for subb in sublist for val in subb]
         #process scan lists to 1D array (720 * 10) new coming scan at the end
         cnn_data.scan = [float(val) for sublist in self.scan for val in sublist]
@@ -154,9 +181,11 @@ def timer_callback(self, event):
 **pedestrian message process**
 
 - make two [80, 80] matrix, resolution to real is 0.25
-- cell numbers of column and row represent positon of pedestrian pos
-- frist matrix contain linear velocity of pedestrian
-- second matrix contain angular velocity of pedestrian
+- cell numbers of column and row represent position of pedestrian
+- first matrix contain linear velocity of pedestrians
+- second matrix contain angular velocity of pedestrians
+
+![](image/ped_process.png)
 
 ```python
 #file location: drl_vo_nav/drl_vo/src/cnn_data_pub.py
@@ -389,7 +418,9 @@ def _obstacle_collision_punish(self, scan, r_scan, r_collision):
 
 - angular velocity reward
 
-
+$$
+r_w^t= \begin{cases}r_{\text {rotation }}\left|\omega_z^t\right| & \text { if }\left|\omega_z^t\right|>\omega_m \\ 0 & \text { otherwise }\end{cases}
+$$
 
 ```python
 #file location: drl_vo_nav/drl_vo/src/turtlebot_gym/turtlebot_gym/envs/drl_nav_env.py
@@ -412,6 +443,10 @@ def _angular_velocity_punish(self, w_z,  r_rotation, w_thresh):
 ```
 
 - theta reward
+
+$$
+r_d^t=r_{\text {angle }}\left(\theta_m-\left|\theta_d^t\right|\right)
+$$
 
 ```python
 #file location: drl_vo_nav/drl_vo/src/turtlebot_gym/turtlebot_gym/envs/drl_nav_env.py
@@ -472,6 +507,9 @@ def _theta_reward(self, goal, mht_peds, v_x, r_angle, angle_thresh):
 
 #### action
 
+- output action to Gym
+- **TODO**: find out where the action arg com from
+
 ```python
 #file location: drl_vo_nav/drl_vo/src/turtlebot_gym/turtlebot_gym/envs/drl_nav_env.py
 
@@ -504,6 +542,11 @@ def _take_action(self, action):
 ```
 
 #### terminal
+
+- Gym reset by 3 conditions
+  1. goal reached
+  2. collision 3 times
+  3. running more than 512 iterations
 
 ```python
 #file location: drl_vo_nav/drl_vo/src/turtlebot_gym/turtlebot_gym/envs/drl_nav_env.py
@@ -551,7 +594,7 @@ def _is_done(self, reward):
         self._reset = True # reset the simulation world
         return True
 
-    # 4) maximum number of iterations?
+    # 3) maximum number of iterations?
     max_iteration = 512
     if(self.num_iterations > max_iteration):
         # reset the robot velocity to 0:
