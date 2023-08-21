@@ -36,8 +36,28 @@ $$
 
 ![](image/observation.png)
 
-- todo annotation about down size process did not add yet
-- get observation
+**get observation**
+
+- return observation to Gym
+
+$$
+o^t = [l^t, p^t, g^t)]
+$$
+**l<sup>t</sup> :** lidar history
+
+**p<sup>t</sup>** : pedestrian kinematics
+
+**g<sup>t</sup>** : subgoal position
+
+- **TODO** annotation about down size and scale scan data did not add yet
+
+  - scale v to [0, 0.5]
+
+  - scale w to [-2.0, 2.0]
+
+$$
+o^t = 2 * (o^t - o_\min^t)/(o_\max^t - o_\min^t) - 1
+$$
 
 ```python
 #file location: drl_vo_nav/drl_vo/src/turtlebot_gym/turtlebot_gym/envs/drl_nav_env.py
@@ -94,13 +114,15 @@ def _get_observation(self):
 
 ```
 
-- observation process
+**observation process**
+
+- from rostopic collecting history scan message(0.5 sec\10 frames default)
+- **TODO** check how to get the trajectory of pedstrian from test
 
 ```python
 #file location: drl_vo_nav/drl_vo/src/cnn_data_pub.py
 
 #pub state of environment at rate of 20Hz
-# todo check how to get the trajectory of pedstrian sim and test
 def timer_callback(self, event):  
     # generate the trajectory of pedestrians:
     self.ped_pos_map = self.ped_pos_map_tmp
@@ -129,7 +151,12 @@ def timer_callback(self, event):
         self.scan = self.scan[1:NUM_TP]
 ```
 
-- pedestrian message process
+**pedestrian message process**
+
+- make two [80, 80] matrix, resolution to real is 0.25
+- cell numbers of column and row represent positon of pedestrian pos
+- frist matrix contain linear velocity of pedestrian
+- second matrix contain angular velocity of pedestrian
 
 ```python
 #file location: drl_vo_nav/drl_vo/src/cnn_data_pub.py
@@ -159,21 +186,18 @@ def ped_callback(self, trackPed_msg):
                 # cartesian velocity map
                 self.ped_pos_map_tmp[0,r,c] = vx
                 self.ped_pos_map_tmp[1,r,c] = vy
-#two [80, 80] matrix, resolution to real is 0.25
-#position of column and row represent positon of pedestrian pos
-#frist matrix contain linear velocity of pedestrian
-#second matrix contain angular velocity of pedestrian
 ```
 
-- scan message process
+**scan message process**
+
+- get the laser scan data
+- we only need data inside of 180 degree in the middle of all scan which contain 270 degree of data
 
 ```python
 #file location: drl_vo_nav/drl_vo/src/cnn_data_pub.py
 
 # Callback function for the scan measurement subscriber
 def scan_callback(self, laserScan_msg):
-    # get the laser scan data:
-    # we only need data inside of 180 degree in the middle of all scan which contain 270 degree of data
     self.scan_tmp = np.zeros(720)
     self.scan_all_tmp = np.zeros(1080)
     scan_data = np.array(laserScan_msg.ranges, dtype=np.float32)
@@ -183,7 +207,9 @@ def scan_callback(self, laserScan_msg):
     self.scan_all_tmp = scan_data
 ```
 
-- goal message process
+**goal message process**
+
+- output[goal_msg.x, goal_msg.y]
 
 ```python
 #file location: drl_vo_nav/drl_vo/src/cnn_data_pub.py
@@ -197,6 +223,17 @@ def goal_callback(self, goal_msg):
 ```
 
 #### reward
+
+$$
+r^t = r_g^t + r_c^t + r_w^t + r_d^t
+$$
+**r<sub>g</sub><sup>t</sup>** : encourage robot move towards goal,  awarded when reaching the goal, penilized when timeout
+
+**r<sub>c</sub><sup>t</sup>** : give punishment when collision
+
+**r<sub>w</sub><sup>t</sup>** : give punishment when output large angular velocity
+
+**r<sub>d</sub><sup>t</sup>** : reward actively steering to avoid obstacles and point toward the subgoal
 
 ```python
 #file location: drl_vo_nav/drl_vo/src/turtlebot_gym/turtlebot_gym/envs/drl_nav_env.py
@@ -236,7 +273,9 @@ def _compute_reward(self):
     return reward
 ```
 
-- details about mht_peds (vo msg)
+**details about mht_peds (vo msg)**
+
+- message type of TrackedPersons()
 
 ```python
 # details about vo msg
@@ -272,7 +311,10 @@ geometry_msgs/TwistWithCovariance   twist
 # velocity of the track (z value and rotational velocities might not be set, check if corresponding variance on diagonal is > 99999)
 ```
 
-- goal reached reward
+**goal reached reward**
+$$
+r_g^t= \begin{cases}r_{\text {goal }} & \text { if }\left\|p_g^t\right\|<g_m \\ -r_{\text {goal }} & \text { else if } t \geq t_{\text {max }} \\ r_{\text {path }}\left(\left\|p_g^{t-1}\right\|-\left\|p_g^t\right\|\right) & \text { otherwise }\end{cases}
+$$
 
 ```python
 #file location: drl_vo_nav/drl_vo/src/turtlebot_gym/turtlebot_gym/envs/drl_nav_env.py
@@ -318,6 +360,10 @@ def _goal_reached_reward(self, r_arrival, r_waypoint):
 
 - collision reward
 
+$$
+r_c^t= \begin{cases}r_{\text {collision }} & \text { if }\left\|p_o^t\right\| \leq d_r \\ r_{\text {obstacle }}\left(d_m-\left\|p_o^t\right\|\right) & \text { else if }\left\|p_o^t\right\| \leq d_m \\ 0 & \text { otherwise }\end{cases}
+$$
+
 ```python
 #file location: drl_vo_nav/drl_vo/src/turtlebot_gym/turtlebot_gym/envs/drl_nav_env.py
 
@@ -342,6 +388,8 @@ def _obstacle_collision_punish(self, scan, r_scan, r_collision):
 ```
 
 - angular velocity reward
+
+
 
 ```python
 #file location: drl_vo_nav/drl_vo/src/turtlebot_gym/turtlebot_gym/envs/drl_nav_env.py
