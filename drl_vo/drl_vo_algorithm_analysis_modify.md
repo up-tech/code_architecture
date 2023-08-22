@@ -8,15 +8,8 @@
 
 **observation**
 
-```latex
 $$
-o^t = [l^t, p^t, g^t)]
-$$
-```
-
-
-$$
-o^t = [l^t, p^t, g^t)]
+\left.o^t=\left[l^t, p^t, g^t\right)\right]
 $$
 **l<sup>t</sup> :** lidar history
 
@@ -26,7 +19,9 @@ $$
 
 **reward**
 $$
-r^t = r_g^t + r_c^t + r_w^t + r_d^t
+\begin{equation}
+r^t=r_g^t+r_c^t+r_w^t+r_d^t
+\end{equation}
 $$
 **r<sub>g</sub><sup>t</sup>** : encourage robot move towards goal,  awarded when reaching the goal, penilized when timeout
 
@@ -49,7 +44,7 @@ $$
 - return observation to Gym
 
 $$
-o^t = [l^t, p^t, g^t)]
+\left.o^t=\left[l^t, p^t, g^t\right)\right]
 $$
  **l<sup>t</sup> :** lidar history
 
@@ -330,7 +325,9 @@ def scan_callback(self, laserScan_msg):
 #### reward
 
 $$
-r^t = r_g^t + r_c^t + r_w^t + r_d^t
+\begin{equation}
+r^t=r_g^t+r_c^t+r_w^t+r_d^t
+\end{equation}
 $$
 **r<sub>g</sub><sup>t</sup>** : encourage robot move towards goal,  awarded when reaching the goal, penilized when timeout
 
@@ -450,6 +447,8 @@ geometry_msgs/TwistWithCovariance   twist
 - _goal_reached_reward
 
 <a name="_goal_reached_reward"></a>
+
+
 $$
 r_g^t= \begin{cases}r_{\text {goal }} & \text { if }\left\|p_g^t\right\|<g_m \\ -r_{\text {goal }} & \text { else if } t \geq t_{\text {max }} \\ r_{\text {path }}\left(\left\|p_g^{t-1}\right\|-\left\|p_g^t\right\|\right) & \text { otherwise }\end{cases}
 $$
