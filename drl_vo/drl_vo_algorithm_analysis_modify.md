@@ -7,6 +7,14 @@
 ![](image/architecture_of_drl_vo.png)
 
 **observation**
+
+```latex
+$$
+o^t = [l^t, p^t, g^t)]
+$$
+```
+
+
 $$
 o^t = [l^t, p^t, g^t)]
 $$
