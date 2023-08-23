@@ -29,7 +29,7 @@ Separately using DRL_VO and DWA finish a sequence of navigation tasks. statistic
 
 #### autolab_with_pedestrians
 
-<img src="/home/lc/Documents/code_architecture/drl_vo/image/autolab_25ped.png" style="zoom:20%;" />
+<img src="image/autolab_25ped.png" style="zoom:20%;" />
 
 | Environment   | Method | Success rate | Average time (s) | Average length (m) | Average speed (m/s) |
 | ------------- | ------ | ------------ | ---------------- | ------------------ | ------------------- |
