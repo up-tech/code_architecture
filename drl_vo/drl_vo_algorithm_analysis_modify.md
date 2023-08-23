@@ -359,7 +359,64 @@ $$
   the reward includes 4 parts (r_g + r_c + r_t + r_w)
 
 1. [_goal_reached_reward](#_goal_reached_reward)(self, r_arrival, r_waypoint)
-   - **Input** environment states
+   
+   - **Input** environment states(global arg), coefficient
+   
+   - **Output** r_g
+   
+   - **Func** :
+   
+     ```
+     calculate distance from current position to goal position (dist_to_goal), and push in a list
+     ├── if dist_to_goal <= GOAL_RADIUS(0.3), return r_arrival(20)
+     ├── elif num_iterations >= max_iteration(512), return -rarrival
+     ├── else return r_waypoint(3.2) * [dist_to_goal_0.5s_age - dist_to_goal]
+     ```
+
+2. [_obstacle_collision_punish](#_obstacle_collision_punish)(self, scan, r_scan, r_collision)
+
+   - **Input** environment states(global arg), coefficient
+
+   - **Output** r_c
+
+   - **Func** :
+
+     ```
+     get min scan distance value as min_scan_dist
+     ├── if 0.2 <=min_scan_dist <= ROBOT_RADIUS(0.3), return r_collision(-20)
+     ├── elif min_scan_dist < 3 * ROBOT_RADIUS, return r_scan(-0.2) * (3 * ROBOT_RADIUS - min_scan_dist)
+     ├── else return 0
+     ```
+
+3. [_angular_velocity_punish](#_angular_velocity_punish)(self, w_z,  r_rotation, w_thresh)
+
+   - **Input** environment states(global arg), coefficient
+
+   - **Output** r_w
+
+   - **Func** :
+
+     ```
+     get current angular velocity as w_z
+     ├── if w_z > w_thresh(1), return reward = abs(w_z) * r_rotation(-0.1)
+     ├── else return 0
+     ```
+
+4. [_theta_reward](#_theta_reward)(self, goal, mht_peds, v_x, r_angle, angle_thresh)
+
+   - **Input** environment states(global arg), coefficient
+
+   - **Output** r_t
+
+   - **Func** :
+
+     ```
+     calculate angle between current robot heading direction and goal direction as theta_pre
+     ├── if these is no ped with in radius of 7m, let theta_d = theta_pre
+         ├── else if obtaining desired direction theta_d
+         ├── else theta theta_d = pi/2 (can't obstaining desired direction through sampling)
+     return r_angle(0.6) * ( angle_thresh(pi/6) - abs(theta_d) )
+     ```
 
 ---
 
@@ -404,44 +461,6 @@ def _compute_reward(self):
     reward = r_g + r_c + r_t + r_w #+ r_v # + r_p
 
     return reward
-```
-
-**details about mht_peds (vo msg)**
-
-- message type of TrackedPersons()
-
-```python
-# details about vo msg
-
-#file location: drl_vo_nav/drl_vo/src/turtlebot_gym/turtlebot_gym/envs/drl_nav_env.py
-self._ped_sub = rospy.Subscriber("/track_ped", TrackedPersons, self._ped_callback)
-# Callback function for the pedestrian subscriber
-def _ped_callback(self, trackPed_msg): 
-    self.mht_peds = trackPed_msg
-
-#file location: src/pedsim_ros_with_gazebo/pedsim_msgs/msg/TrackedPersons.msg
-
-#data tpye of vo msg
-Header              header      # Header containing timestamp etc. of this message
-TrackedPerson[]     tracks      # All persons that are currently being tracked
-
-#file location: src/pedsim_ros_with_gazebo/pedsim_msgs/msg/TrackedPersons.msg
-
-# Message defining a tracked person
-#
-uint64      track_id        # unique identifier of the target, consistent over time
-bool        is_occluded     # if the track is currently not observable in a physical way
-bool        is_matched      # if the track is currently matched by a detection
-uint64      detection_id    # id of the corresponding detection in the current cycle (undefined if occluded)
-duration    age             # age of the track
-
-# The following fields are extracted from the Kalman state x and its covariance C
-
-geometry_msgs/PoseWithCovariance    pose
-# pose of the track (z value and orientation might not be set, check if corresponding variance on diagonal is > 99999)
-
-geometry_msgs/TwistWithCovariance   twist
-# velocity of the track (z value and rotational velocities might not be set, check if corresponding variance on diagonal is > 99999)
 ```
 
 - _goal_reached_reward
@@ -497,6 +516,7 @@ def _goal_reached_reward(self, r_arrival, r_waypoint):
 
 - collision reward
 
+<a name="_obstacle_collision_punish"></a>
 $$
 r_c^t= \begin{cases}r_{\text {collision }} & \text { if }\left\|p_o^t\right\| \leq d_r \\ r_{\text {obstacle }}\left(d_m-\left\|p_o^t\right\|\right) & \text { else if }\left\|p_o^t\right\| \leq d_m \\ 0 & \text { otherwise }\end{cases}
 $$
@@ -526,6 +546,7 @@ def _obstacle_collision_punish(self, scan, r_scan, r_collision):
 
 - angular velocity reward
 
+<a name="_angular_velocity_punish"></a>
 $$
 r_w^t= \begin{cases}r_{\text {rotation }}\left|\omega_z^t\right| & \text { if }\left|\omega_z^t\right|>\omega_m \\ 0 & \text { otherwise }\end{cases}
 $$
@@ -546,12 +567,12 @@ def _angular_velocity_punish(self, w_z,  r_rotation, w_thresh):
     else:
         reward = 0.0
 
-    rospy.logwarn("Angular velocity punish reward: {}".format(reward))
     return reward
 ```
 
 - theta reward
 
+<a name="_theta_reward"></a>
 $$
 r_d^t=r_{\text {angle }}\left(\theta_m-\left|\theta_d^t\right|\right)
 $$
@@ -616,7 +637,7 @@ def _theta_reward(self, goal, mht_peds, v_x, r_angle, angle_thresh):
 #### action
 
 - output action to Gym
-- **TODO**: find out where the action arg com from
+- **TODO**: find out where the action arg come from
 
 ```python
 #file location: drl_vo_nav/drl_vo/src/turtlebot_gym/turtlebot_gym/envs/drl_nav_env.py
@@ -766,7 +787,7 @@ self.low_action = np.array([-1, -1])
 self.action_space = spaces.Box(low=self.low_action, high=self.high_action, dtype=np.float32)
 ```
 
-#### observation space - using to init network
+#### observation space
 
 ```python
 #file location: drl_vo_nav/drl_vo/src/turtlebot_gym/turtlebot_gym/envs/drl_nav_env.py
