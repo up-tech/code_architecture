@@ -803,6 +803,21 @@ self.observation_space = spaces.Box(low=-1, high=1, shape=(19202,), dtype=np.flo
 
 ![](image/network_structure.png)
 
+#### data process in network
+
+- forward function structure
+
+```
+forward(self, observations: torch.Tensor) -> torch.Tensor:
+├── _forward_impl(self, ped_pos, scan, goal):
+```
+
+- process
+
+1. divide input observation[19202] into three parts ped_pos[12800], scan[6400], goal[2]
+2. reshape and fusion ped_pos and scan to \[1][3]\[80][80]
+3. feed data into 2D convolutional layer with 
+
 ```python
 #file location: drl_vo_nav/drl_vo/src/custom_cnn_full.py
 

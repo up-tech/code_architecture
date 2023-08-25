@@ -2,7 +2,7 @@
 
 ---
 
-#### Basic idea of DWA
+#### Basic idea of DWA (ROS Implemention)
 
 ![](image/velocity_sample_of_dwa.png)
 
@@ -41,66 +41,57 @@ The basic idea of the Dynamic Window Approach (DWA) algorithm is as follows:
 
 ---
 
-#### Code analysis of ROS DWA_local_planner
+#### Code analysis of dynamic window approach
 
-- setup
+<img src="image/dynamic_window_approach.png" style="zoom: 25%;" />
 
-```c++
-//定义用于发布dwa中全局与局部路径的话题
-ros::NodeHandle private_nh("~/" + name);
-g_plan_pub_ = private_nh.advertise<nav_msgs::Path>("global_plan", 1);
-l_plan_pub_ = private_nh.advertise<nav_msgs::Path>("local_plan", 1);
+#### Code Structure
+
+```
+├── main(gx=10.0, gy=10.0, robot_type=RobotType.circle)
+    ├── start control loop
+    ├── u, predicted_trajectory = dwa_control(x, config, goal, ob)
+        ├── 
+        ├── 
+        ├── 
+    ├── update state x
+    ├── stacking trajectory points
+ ├── arrival goal
+ ├── plotting trajectory
 ```
 
-```c++
-//初始化tf用于获取坐标变换
-//初始化costmap_ros_用于获得costmap信息，进行障碍物相关score的计算
-//初始化odom_helper_用于获取机器人当前的速度
-tf_ = tf;
-costmap_ros_ = costmap_ros;
-costmap_2d::Costmap2D* costmap = costmap_ros_->getCostmap();
-odom_helper_.setOdomTopic( odom_topic_ );
-```
+#### Analysis
 
-- run dwa
+1. initial state tupe x np.array([0.0, 0.0, math.pi / 8.0, 0.0, 0.0])  [x(m), y(m), yaw(rad), v(m/s), omega(rad/s)]
+2. set goal position goal = np.array([gx, gy]) (10, 10)
+3. 
 
-```c++
-//获取当前机器人距离终点的路径(通过截取当前点到终点的全局路径)
-std::vector<geometry_msgs::PoseStamped> transformed_plan;
-planner_util_.getLocalPlan(current_pose_, transformed_plan)) 
-```
+#### Code
 
-```c++
-//关键函数： dwaComputeVelocityCommands()
-//用于dwa计算速度给机器人执行
-//这个函数调用了下面的一些函数
-bool DWAPlannerROS::dwaComputeVelocityCommands(tf::Stamped<tf::Pose> &global_pose, 
-                                                geometry_msgs::Twist& cmd_vel)
-```
 
-```c++
-//在每一个timestep根据运动学约束采样速度
-void SimpleTrajectoryGenerator::initialise()
-      max_vel[0] = std::min(max_vel_x, vel[0] + acc_lim[0] * sim_period_);
-      max_vel[1] = std::min(max_vel_y, vel[1] + acc_lim[1] * sim_period_);
-      max_vel[2] = std::min(max_vel_th, vel[2] + acc_lim[2] * sim_period_);
-//根据每个采样的速度生成仿真时间内的trajectory
-bool SimpleTrajectoryGenerator::generateTrajectory()
 
-//计算Score
-//初始化每种用于计算score的实例对象，放入vector容器中
-std::vector<base_local_planner::TrajectoryCostFunction*> critics;
-critics.push_back(&obstacle_costs_); // discards trajectories that move into obstacles
-critics.push_back(&oscillation_costs_); // discards oscillating motions (assisgns cost -1)
-critics.push_back(&goal_front_costs_); // prefers trajectories that make the nose go towards (local) nose goal
-critics.push_back(&alignment_costs_); // prefers trajectories that keep the robot nose on nose path
-critics.push_back(&path_costs_); // prefers trajectories on global path
-critics.push_back(&goal_costs_); // prefers trajectories that go towards (local) goal, based on wave propagation
-critics.push_back(&twirling_costs_); // optionally prefer trajectories that don't spin
+```python
+def main(gx=10.0, gy=10.0, robot_type=RobotType.circle):
+    print(__file__ + " start!!")
+    # initial state [x(m), y(m), yaw(rad), v(m/s), omega(rad/s)]
+    x = np.array([0.0, 0.0, math.pi / 8.0, 0.0, 0.0])
+    # goal position [x(m), y(m)]
+    goal = np.array([gx, gy])
 
-//在findBestPath中计算之前采样的速度对应的仿真trajectory的score,选出其中score最大的速度指令
-base_local_planner::Trajectory DWAPlanner::findBestPath()
+    # input [forward speed, yaw_rate]
 
-//得到最优的速度
+    config.robot_type = robot_type
+    trajectory = np.array(x)
+    ob = config.ob
+    while True:
+        u, predicted_trajectory = dwa_control(x, config, goal, ob)
+        x = motion(x, u, config.dt)  # simulate robot
+        trajectory = np.vstack((trajectory, x))  # store state history
+        
+        # check reaching goal
+        dist_to_goal = math.hypot(x[0] - goal[0], x[1] - goal[1])
+        if dist_to_goal <= config.robot_radius:
+            print("Goal!!")
+            break
 ```
 
