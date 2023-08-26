@@ -7,7 +7,6 @@
 ![](image/architecture_of_drl_vo.png)
 
 **observation**
-
 $$
 \left.o^t=\left[l^t, p^t, g^t\right)\right]
 $$
@@ -801,7 +800,7 @@ self.observation_space = spaces.Box(low=-1, high=1, shape=(19202,), dtype=np.flo
 
 #### network structure
 
-![](image/network_structure.png)
+<img src="image/network_structure.png" style="zoom: 33%;" />
 
 #### data process in network
 
@@ -812,11 +811,22 @@ forward(self, observations: torch.Tensor) -> torch.Tensor:
 ├── _forward_impl(self, ped_pos, scan, goal):
 ```
 
-- process
+- [process](#_forward_impl)
+
+<img src="image/network_forward.png" style="zoom: 33%;" />
 
 1. divide input observation[19202] into three parts ped_pos[12800], scan[6400], goal[2]
 2. reshape and fusion ped_pos and scan to \[1][3]\[80][80]
-3. feed data into 2D convolutional layer with 
+3. feed data into 2D convolutional layer then normalize and max pooling the output. let's say we get middle data (1, 64, 80, 80)
+4. feeding (1, 64, 80, 80) into ResNet then using down sample process data and merge with ResNet's output. obtaining  data(1, 512, 20, 20) 
+5. process average pooling to data(1, 512, 20, 20) , and merge the result with goal data
+6. using nn.linear_fc transform data (1, 514), finally get the data (1, 256) which fitting feature dimension
+
+TODO: find out the change able parameters in the network
+
+---
+
+#### code of network structure and forward process
 
 ```python
 #file location: drl_vo_nav/drl_vo/src/custom_cnn_full.py
@@ -1001,7 +1011,9 @@ class Bottleneck(nn.Module):
 # end of ResNet blocks
 ```
 
-#### network forward
+- network forward
+
+<a name="_forward_impl"></a>
 
 ```python
 #file location: drl_vo_nav/drl_vo/src/custom_cnn_full.py
@@ -1010,36 +1022,35 @@ def _forward_impl(self, ped_pos, scan, goal):
     ###### Start of fusion net ######
     ped_in = ped_pos.reshape(-1,2,80,80)
     scan_in = scan.reshape(-1,1,80,80)
-    fusion_in = torch.cat((scan_in, ped_in), dim=1)
+    fusion_in = torch.cat((scan_in, ped_in), dim=1)  #shape: (1, 3, 80, 80)
 
     # See note [TorchScript super()]
-    x = self.conv1(fusion_in)
-    x = self.bn1(x)
-    x = self.relu(x)
-    x = self.maxpool(x)
+    x = self.conv1(fusion_in)  #shape: (1, 64, 80, 80) out_feature: 64
+    x = self.bn1(x)            #shape: (1, 64, 80, 80) normalized
+    x = self.relu(x)           #shape: (1, 64, 80, 80)
+    x = self.maxpool(x)        #output shape: (1, 64, 80, 80)
 
-    identity3 = self.downsample3(x)
+    identity3 = self.downsample3(x) #output shape: (1, 512 20 20)
 
-    x = self.layer1(x)
+    x = self.layer1(x)  #input shape: (1, 64, 80, 80) #output shape (1, 128, 80, 80)
 
-    identity2 = self.downsample2(x)
+    identity2 = self.downsample2(x) #input shape: (1, 128, 80, 80) #output shape (1, 256, 40, 40)
 
-    x = self.layer2(x)
+    x = self.layer2(x)   #input shape: (1, 128, 80, 80) #output shape (1, 256, 40, 40)
 
-    x = self.conv2_2(x)
+    x = self.conv2_2(x)  #output shape (1, 256, 40, 40)
     x += identity2
     x = self.relu2(x)
 
-
-    x = self.layer3(x)
+    x = self.layer3(x) #input shape (1, 256, 40, 40) #output shape (1, 512, 20, 20)
     # x = self.layer4(x)
 
-    x = self.conv3_2(x)
+    x = self.conv3_2(x) #output shape (1, 512, 20, 20)
     x += identity3
     x = self.relu3(x)
 
-    x = self.avgpool(x)
-    fusion_out = torch.flatten(x, 1)
+    x = self.avgpool(x) #output shape (1, 512, 1, 1)
+    fusion_out = torch.flatten(x, 1)  #(1, 512)
     ###### End of fusion net ######
 
     ###### Start of goal net #######
@@ -1047,8 +1058,8 @@ def _forward_impl(self, ped_pos, scan, goal):
     goal_out = torch.flatten(goal_in, 1)
     ###### End of goal net #######
     # Combine
-    fc_in = torch.cat((fusion_out, goal_out), dim=1)
-    x = self.linear_fc(fc_in)  
+    fc_in = torch.cat((fusion_out, goal_out), dim=1)  #(1, 514)
+    x = self.linear_fc(fc_in)  #(1, 256)
 
     return x
 
@@ -1102,6 +1113,7 @@ model = PPO.load(model_file, env=env, **kwargs)
 
 # Create the callback: check every 1000 steps
 callback = SaveOnBestTrainingRewardCallback(check_freq=5000, log_dir=log_dir)
+
 model.learn(total_timesteps=2000000, log_interval=5, tb_log_name='drl_vo_policy', callback=callback, reset_num_timesteps=True)
 
 # Saving final model
