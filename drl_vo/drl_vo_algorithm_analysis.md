@@ -1,27 +1,27 @@
-## DRL_VO algorithm analysis
+# DRL_VO algorithm analysis
 
 ---
 
-### Overview
+## Overview
 
 ![](image/architecture_of_drl_vo.png)
 
-**observation**
-$$
-\left.o^t=\left[l^t, p^t, g^t\right)\right]
-$$
+**Observation**
+
+$\left.o^t=\left[l^t, p^t, g^t\right)\right]$
+
 **l<sup>t</sup> :** lidar history
 
 **p<sup>t</sup>** : pedestrian kinematics
 
 **g<sup>t</sup>** : subgoal position
 
-**reward**
-$$
-\begin{equation}
+**Reward**
+
+$\begin{equation}
 r^t=r_g^t+r_c^t+r_w^t+r_d^t
-\end{equation}
-$$
+\end{equation}$
+
 **r<sub>g</sub><sup>t</sup>** : encourage robot move towards goal,  awarded when reaching the goal, penilized when timeout
 
 **r<sub>c</sub><sup>t</sup>** : give punishment when collision
@@ -30,34 +30,153 @@ $$
 
 **r<sub>d</sub><sup>t</sup>** : reward actively steering to avoid obstacles and point toward the subgoal
 
+**Action**
+
+**v<sub>x</sub><sup>t</sup>** : linear velocity
+
+**w<sub>z</sub><sup>t</sup>** : angular velocity
+
 ---
 
-### Environment Setup
+## Environment Setup
 
-#### observation overview
+Using Gym as API to implement the classic “agent-environment loop”, we need to self define some basic functions when create a custom env:
 
-![](image/observation.png)
+- gym.Env.**step**(**self**, **action: ActType**) **→ Tuple[ObsType, float, bool, bool, dict]**
 
-**get observation**
+  Run one timestep of the environment’s dynamics
+
+- gym.Env.**reset**(**self**, *****,**seed: int | None = None**,**options: dict | None = None**)→**Tuple[ObsType, dict]**
+
+  Resets the environment to an initial state and returns the initial observation
+
+- Env.**action_space**: [Space](https://www.gymlibrary.dev/api/spaces/#gym.spaces.Space)[ActType]
+- Env.**observation_space**: [Space](https://www.gymlibrary.dev/api/spaces/#gym.spaces.Space)[ObsType]
+
+We alse need define some global arguments and the method functions to get them:
+
+- observation
+- reward
+- action
+
+### Env
+
+- The main Gym class for implementing Reinforcement Learning Agents environments
+- The [`Env.reset()`](https://gymnasium.farama.org/api/env/#gymnasium.Env.reset) and [`Env.step()`](https://gymnasium.farama.org/api/env/#gymnasium.Env.step) functions must be created describing the dynamics of the environment. 
+
+**Dynamics of the environment**
+
+```mermaid
+graph LR;
+    id1(unpause simulation)-->id2(take action);
+    id2(take action)-->id3(pause simulation);
+    id3(pause simulation)-->id4(compute reward);
+    id4(compute reward)-->id5(check terminal condition);
+    id5(check terminal condition)--not ternimal-->id6(get observation);
+    id6(get observation)-->id1(unpause simulation);
+    id5(check terminal condition)--ternimal-->id7(reset env);
+    id7(reset env)-->id6(get observation);
+```
+
+#### step
+
+- Updates an environment with actions returning the next agent observation, the reward for taking that actions, if the environment has terminated or truncated due to the latest action and information from the environment about the step, i.e. metrics, debug info
+
+
+```python
+#file location: drl_vo_nav/drl_vo/src/turtlebot_gym/turtlebot_gym/envs/drl_nav_env.py
+
+#some interface
+# self.unpause = rospy.ServiceProxy('/gazebo/unpause_physics', Empty)
+# self.pause = rospy.ServiceProxy('/gazebo/pause_physics', Empty)
+
+#todo: did not find where the action come from yet.
+#step
+def step(self, action):
+    """
+    Gives env an action to enter the next state,
+    obs, reward, done, info = env.step(action)
+    """
+    # Convert the action num to movement action
+    
+    # call service to keep gazebo simulation running
+    self.gazebo.unpauseSim()
+    # using Max-Abs scale linear v to (0, 0.5), angular v to (-2.0, 2.0)
+    self._take_action(action)
+    # call service to pause gazebo simulation 
+    self.gazebo.pauseSim()
+    
+    # get obs for next step
+    obs = self._get_observation()
+    # get this turn's reward
+    reward = self._compute_reward()
+    # cheak if termination conditions were satisfied
+    # if done is true env.reset() will be call
+    # pedestrians pose will be reset to initial pose
+    done = self._is_done(reward)
+    # print robot current pose information and goal pose information
+    info = self._post_information()
+
+    return obs, reward, done, info
+```
+
+#### reset
+
+1. reset simulation
+2. get first observation
+
+```python
+def reset(self):
+    """ 
+    obs, info = env.reset() 
+    """
+    # self.gazebo.pauseSim()
+    rospy.logdebug("Reseting RobotGazeboEnvironment")
+    self._reset_sim()
+    obs = self._get_observation()
+    info = self._post_information()
+    rospy.logdebug("END Reseting RobotGazeboEnvironment")
+    return obs
+```
+
+- Additional attributes to understand the implementation
+
+#### Action space
+
+```python
+#file location: drl_vo_nav/drl_vo/src/turtlebot_gym/turtlebot_gym/envs/drl_nav_env.py
+
+# action space
+self.high_action = np.array([1, 1])
+self.low_action = np.array([-1, -1])
+self.action_space = spaces.Box(low=self.low_action, high=self.high_action, dtype=np.float32)
+```
+
+#### Observation space
+
+```python
+#file location: drl_vo_nav/drl_vo/src/turtlebot_gym/turtlebot_gym/envs/drl_nav_env.py
+
+self.observation_space = spaces.Box(low=-1, high=1, shape=(19202,), dtype=np.float32)
+```
+
+### **Observation**
 
 - return observation to Gym
 
-$$
-\left.o^t=\left[l^t, p^t, g^t\right)\right]
-$$
+$\left.o^t=\left[l^t, p^t, g^t\right)\right]$
+
  **l<sup>t</sup> :** lidar history
 
 **p<sup>t</sup>** : pedestrian kinematics
 
 **g<sup>t</sup>** : subgoal position
 
-- MaxAbsScaler
+- MaxAbsScaler to normalize input observation
 
-$$
-\mathbf{o}^t=2 \frac{\mathbf{o}^t-\mathbf{o}_{\min }^t}{\mathbf{o}_{\max }^t-\mathbf{o}_{\min }^t}-1
-$$
+  $\mathbf{o}^t=2 \frac{\mathbf{o}^t-\mathbf{o}_{\min }^t}{\mathbf{o}_{\max }^t-\mathbf{o}_{\min }^t}-1$
 
-#### observation function relationships
+**observation function relationships**
 
 ```
 ├── _get_observation
@@ -70,6 +189,9 @@ $$
 ---
 
 #### lidar_scan_data
+
+- according to shape of observation, the output observation date's size is 19202
+- 
 
 ![](image/lidar_data_process.png)
 
@@ -104,13 +226,13 @@ $$
 ![](image/ped_data_process.png)
 
 1. track_ped_pub.py(file location: drl_vo_nav/drl_vo/src/track_ped_pub.py)
-   - **Input** **data_tpye**: list of ped data(**global frame**), which element contains position and velocity of one ped
-   - **Ouput** **data_tpye**: list of ped data(**local frame**), which element contains position and velocity of one ped
+   - **Input** **data_type**: list of ped data(**global frame**), which element contains position and velocity of one ped
+   - **Ouput** **data_type**: list of ped data(**local frame**), which element contains position and velocity of one ped
    - **Func** change ped data's coordinate frame from global(map_frame) to local(robot_frame)
 
 2. [ped_callback](#ped_callback)(self, trackPed_msg)
-   - **Ouput** **data_tpye**: list of ped data(**local frame**),
-   - **Ouput** **data_szie**: two matrix 2 * \[80][80]
+   - **Input** **data_type**: list of ped data(**local frame**),
+   - **Ouput** **date_size**: two matrix 2 * \[80][80]
    - **Func** [mapping](#mapping) ped data to matrix
 
 3. [_get_observation](#_get_observation)(self)
@@ -145,7 +267,7 @@ $$
 
 ---
 
-#### observation code
+#### Observation code
 
 - _get_observation
 
@@ -323,13 +445,12 @@ def scan_callback(self, laserScan_msg):
 
 ---
 
-#### reward
+### Reward
 
-$$
-\begin{equation}
+$\begin{equation}
 r^t=r_g^t+r_c^t+r_w^t+r_d^t
-\end{equation}
-$$
+\end{equation}$
+
 **r<sub>g</sub><sup>t</sup>** : encourage robot move towards goal,  awarded when reaching the goal, penilized when timeout
 
 **r<sub>c</sub><sup>t</sup>** : give punishment when collision
@@ -340,7 +461,7 @@ $$
 
 ---
 
-#### reward function relationships
+**reward function relationships**
 
 ```
 ├── _compute_reward
@@ -421,7 +542,7 @@ $$
 
 ---
 
-#### reward code
+#### Reward code
 
 - _compute_reward
 
@@ -468,10 +589,7 @@ def _compute_reward(self):
 
 <a name="_goal_reached_reward"></a>
 
-
-$$
-r_g^t= \begin{cases}r_{\text {goal }} & \text { if }\left\|p_g^t\right\|<g_m \\ -r_{\text {goal }} & \text { else if } t \geq t_{\text {max }} \\ r_{\text {path }}\left(\left\|p_g^{t-1}\right\|-\left\|p_g^t\right\|\right) & \text { otherwise }\end{cases}
-$$
+$r_g^t= \begin{cases}r_{\text {goal }} & \text { if }\left\|p_g^t\right\|<g_m \\ -r_{\text {goal }} & \text { else if } t \geq t_{\text {max }} \\ r_{\text {path }}\left(\left\|p_g^{t-1}\right\|-\left\|p_g^t\right\|\right) & \text { otherwise }\end{cases}$
 
 ```python
 #file location: drl_vo_nav/drl_vo/src/turtlebot_gym/turtlebot_gym/envs/drl_nav_env.py
@@ -518,9 +636,8 @@ def _goal_reached_reward(self, r_arrival, r_waypoint):
 - collision reward
 
 <a name="_obstacle_collision_punish"></a>
-$$
-r_c^t= \begin{cases}r_{\text {collision }} & \text { if }\left\|p_o^t\right\| \leq d_r \\ r_{\text {obstacle }}\left(d_m-\left\|p_o^t\right\|\right) & \text { else if }\left\|p_o^t\right\| \leq d_m \\ 0 & \text { otherwise }\end{cases}
-$$
+
+$r_c^t= \begin{cases}r_{\text {collision }} & \text { if }\left\|p_o^t\right\| \leq d_r \\ r_{\text {obstacle }}\left(d_m-\left\|p_o^t\right\|\right) & \text { else if }\left\|p_o^t\right\| \leq d_m \\ 0 & \text { otherwise }\end{cases}$
 
 ```python
 #file location: drl_vo_nav/drl_vo/src/turtlebot_gym/turtlebot_gym/envs/drl_nav_env.py
@@ -548,9 +665,8 @@ def _obstacle_collision_punish(self, scan, r_scan, r_collision):
 - angular velocity reward
 
 <a name="_angular_velocity_punish"></a>
-$$
-r_w^t= \begin{cases}r_{\text {rotation }}\left|\omega_z^t\right| & \text { if }\left|\omega_z^t\right|>\omega_m \\ 0 & \text { otherwise }\end{cases}
-$$
+
+$r_w^t= \begin{cases}r_{\text {rotation }}\left|\omega_z^t\right| & \text { if }\left|\omega_z^t\right|>\omega_m \\ 0 & \text { otherwise }\end{cases}$
 
 ```python
 #file location: drl_vo_nav/drl_vo/src/turtlebot_gym/turtlebot_gym/envs/drl_nav_env.py
@@ -574,9 +690,8 @@ def _angular_velocity_punish(self, w_z,  r_rotation, w_thresh):
 - theta reward
 
 <a name="_theta_reward"></a>
-$$
-r_d^t=r_{\text {angle }}\left(\theta_m-\left|\theta_d^t\right|\right)
-$$
+
+$r_d^t=r_{\text {angle }}\left(\theta_m-\left|\theta_d^t\right|\right)$
 
 ```python
 #file location: drl_vo_nav/drl_vo/src/turtlebot_gym/turtlebot_gym/envs/drl_nav_env.py
@@ -635,7 +750,7 @@ def _theta_reward(self, goal, mht_peds, v_x, r_angle, angle_thresh):
     return reward
 ```
 
-#### action
+### Action
 
 - output action to Gym
 - in this project, action was generated by library stable_baselines3/ppo
@@ -674,7 +789,7 @@ def _take_action(self, action):
     
 ```
 
-#### terminal
+### Terminal
 
 - Gym reset by 3 conditions
   1. goal reached
@@ -739,82 +854,19 @@ def _is_done(self, reward):
     return False #self._episode_done
 ```
 
-#### step
-
-- Updates an environment with actions returning the next agent observation, the reward for taking that actions, if the environment has terminated or truncated due to the latest action and information from the environment about the step, i.e. metrics, debug info
-
-```python
-#file location: drl_vo_nav/drl_vo/src/turtlebot_gym/turtlebot_gym/envs/drl_nav_env.py
-
-#some interface
-# self.unpause = rospy.ServiceProxy('/gazebo/unpause_physics', Empty)
-# self.pause = rospy.ServiceProxy('/gazebo/pause_physics', Empty)
-
-#todo: did not find where the action come from yet.
-#step
-def step(self, action):
-    """
-    Gives env an action to enter the next state,
-    obs, reward, done, info = env.step(action)
-    """
-    # Convert the action num to movement action
-    
-    # call service to keep gazebo simulation running
-    self.gazebo.unpauseSim()
-    # using Max-Abs scale linear v to (0, 0.5), angular v to (-2.0, 2.0)
-    self._take_action(action)
-    # call service to pause gazebo simulation 
-    self.gazebo.pauseSim()
-    
-    # get obs for next step
-    obs = self._get_observation()
-    # get this turn's reward
-    reward = self._compute_reward()
-    # cheak if termination conditions were satisfied
-    # if done is true env.reset() will be call
-    # pedestrians pose will be reset to initial pose
-    done = self._is_done(reward)
-    # print robot current pose information and goal pose information
-    info = self._post_information()
-
-    return obs, reward, done, info
-```
-
-#### action space
-
-```python
-#file location: drl_vo_nav/drl_vo/src/turtlebot_gym/turtlebot_gym/envs/drl_nav_env.py
-
-# action space
-self.high_action = np.array([1, 1])
-self.low_action = np.array([-1, -1])
-self.action_space = spaces.Box(low=self.low_action, high=self.high_action, dtype=np.float32)
-```
-
-#### observation space
-
-```python
-#file location: drl_vo_nav/drl_vo/src/turtlebot_gym/turtlebot_gym/envs/drl_nav_env.py
-
-self.observation_space = spaces.Box(low=-1, high=1, shape=(19202,), dtype=np.float32)
-```
-
 ---
 
-#### network structure
+## Network Structure
+
+- **Overall**
 
 <img src="image/network_structure.png" style="zoom: 33%;" />
 
-#### data process in network
+### Feature Extractor Network
 
-- forward function structure
+<img src="/home/lc/Documents/code_architecture/drl_vo/image/feature_extractor.png" style="zoom: 40%;" />
 
-```
-forward(self, observations: torch.Tensor) -> torch.Tensor:
-├── _forward_impl(self, ped_pos, scan, goal):
-```
-
-- [process](#_forward_impl)
+#### [feature extractor process](#_forward_impl)
 
 <img src="image/network_forward.png" style="zoom: 33%;" />
 
@@ -829,7 +881,7 @@ TODO: find out the change able parameters in the network
 
 ---
 
-#### code of network structure and forward process
+**Code of feature extractor**
 
 ```python
 #file location: drl_vo_nav/drl_vo/src/custom_cnn_full.py
@@ -1014,7 +1066,7 @@ class Bottleneck(nn.Module):
 # end of ResNet blocks
 ```
 
-- network forward
+- Network Forward
 
 <a name="_forward_impl"></a>
 
@@ -1078,7 +1130,7 @@ def forward(self, observations: torch.Tensor) -> torch.Tensor:
 
 ---
 
-### Training process
+## Training process
 
 - process model = PPO( ) to implement a [PPO](#PPO) while first training
 - process model = PPO.load( ) to load parameters when we want continue training
@@ -1224,7 +1276,7 @@ def __init__(
 
 ---
 
-### Testing process
+## Testing process
 
 1. load trained model through
 2. sub ros topic and process as gym observation define
