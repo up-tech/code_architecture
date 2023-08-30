@@ -8,11 +8,21 @@
 
 #### Env
 
-flow chart
+```mermaid
+flowchart TD
+    id1(collect all humans observation)-->id2(generate humans action);
+    id2(generate humans action)-->id3(check collision);
+    id3(check collision)-->id4(check goal reached);
+    id4(check goal reached)-->id5(calculate reward & check terminal);
+    id5(calculate reward & check terminal)-->id6(update robot and humans state);
+    id6(update robot and humans state)-->id7(get next observation);
+```
 
 ##### Step
 
 ```python
+#file location: CrowdNav/crowd_sim/envs/utils/crowd_sim.py
+
 def step(self, action, update=True):
     """
     Compute actions for all agents, detect collision, update environment and return (ob, reward, done, info)
@@ -122,6 +132,8 @@ def step(self, action, update=True):
 ##### Reset
 
 ```python
+#file location: CrowdNav/crowd_sim/envs/utils/crowd_sim.py
+
 def reset(self, phase='test', test_case=None):
     """
     Set px, py, gx, gy, vx, vy, theta for robot and humans
@@ -186,15 +198,66 @@ def reset(self, phase='test', test_case=None):
     return ob
 ```
 
-
-
-#### Action space
-
-##### Observation space
-
 #### Observation
 
+$p_x,p_y,v_x,v_y,radius$
+
+p<sub>x</sub> : human's position x
+p<sub>y</sub> : human's position y
+v<sub>x</sub> : human's velocity x
+v<sub>y</sub> : human's velocity y
+radius : human's radius
+
+- Source of observation data: Ground truth in gym environment
+- Collect each human's $p_x,p_y,v_x,v_y,radius$ and form the observation
+
+```python
+#file location: CrowdNav/crowd_sim/envs/utils/agents.py
+
+def get_next_observable_state(self, action):
+    self.check_validity(action)
+    pos = self.compute_position(action, self.time_step)
+    next_px, next_py = pos
+    if self.kinematics == 'holonomic':
+        next_vx = action.vx
+        next_vy = action.vy
+    else:
+        next_theta = self.theta + action.r
+        next_vx = action.v * np.cos(next_theta)
+        next_vy = action.v * np.sin(next_theta)
+return ObservableState(next_px, next_py, next_vx, next_vy, self.radius)
+```
+
 #### Reward
+
+
+
+```python
+#file location: CrowdNav/crowd_sim/envs/utils/crowd_sim.py
+
+if self.global_time >= self.time_limit - 1:
+    reward = 0
+    done = True
+    info = Timeout()
+elif collision:
+    reward = self.collision_penalty
+    done = True
+    info = Collision()
+elif reaching_goal:
+    reward = self.success_reward
+    done = True
+    info = ReachGoal()
+elif dmin < self.discomfort_dist:
+    # only penalize agent for getting too close if it's visible
+    # adjust the reward based on FPS
+    reward = (dmin - self.discomfort_dist) * self.discomfort_penalty_factor * self.time_step
+    done = False
+    info = Danger(dmin)
+else:
+    reward = 0
+    done = False
+    info = Nothing()
+```
 
 #### Action
 
@@ -203,5 +266,37 @@ def reset(self, phase='test', test_case=None):
 ### Network Structure
 
 ### Training Process
+
+```mermaid
+---
+title: Training
+---
+
+flowchart TD
+  configure["path
+  logging
+  environment"]
+  
+  load_config["env.config
+  policy.config
+  train.config"]
+  
+  il["imitation_learning"]
+  
+  rl["reinforcement_learning"]
+  
+  trainer["configure trainer"]
+  
+  explorer["configure explorer"]
+  
+  configure --> load_config;
+  load_config --> trainer;
+  trainer --> explorer;
+  explorer --> il;
+  il --> rl;
+  
+```
+
+
 
 ### Testing Process

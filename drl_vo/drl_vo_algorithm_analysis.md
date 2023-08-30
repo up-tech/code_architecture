@@ -864,7 +864,7 @@ def _is_done(self, reward):
 
 ### Feature Extractor Network
 
-<img src="/home/lc/Documents/code_architecture/drl_vo/image/feature_extractor.png" style="zoom: 40%;" />
+<img src="image/feature_extractor.png" style="zoom: 40%;" />
 
 #### [feature extractor process](#_forward_impl)
 
