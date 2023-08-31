@@ -420,3 +420,42 @@ process of **reinforcement learning**
 
 ### Testing Process
 
+---
+
+$\sum_{s=0}^{total-steps} (\gamma^{s\cdot 0.25\cdot 1}*reward_s )\\\\0.25: robot.time\_step\\1: robot.v\_pref$
+
+```python
+self.update_memory(states, actions, rewards, imitation_learning)
+
+state = JointState(self.get_full_state(), ob)
+#full state: px, py, vx, vy, radius, gx, gy, v_pref, theta (robot)
+#ob: px, py, vx, vy, radius (humans)
+
+state = self.target_policy.transform(state)
+#Take the state passed from agent and transform it to the input of value network
+
+```
+
+```python
+state_tensor = torch.cat([torch.Tensor([state.self_state + human_state]).to(self.device)
+                      for human_state in state.human_states], dim=0)
+```
+
+
+
+```python
+round is: 7
+tensor([[ 8.0000,  1.0000,  0.0000,  0.3000,  0.0000, -0.0000, -0.1905, -0.8070,
+          0.0000, -0.0000,  0.3000,  0.8292,  0.6000],
+        [ 8.0000,  1.0000,  0.0000,  0.3000,  0.0000, -0.0000,  6.4962, -3.3679,
+          0.0000, -0.0000,  0.3000,  7.3173,  0.6000],
+        [ 8.0000,  1.0000,  0.0000,  0.3000,  0.0000, -0.0000,  6.2920,  2.6839,
+          0.0000, -0.0000,  0.3000,  6.8405,  0.6000],
+        [ 8.0000,  1.0000,  0.0000,  0.3000,  0.0000, -0.0000,  4.4402,  3.9008,
+          0.0000, -0.0000,  0.3000,  5.9102,  0.6000],
+        [ 8.0000,  1.0000,  0.0000,  0.3000,  0.0000, -0.0000,  2.1060, -3.4071,
+          0.0000, -0.0000,  0.3000,  4.0054,  0.6000]])
+# 
+
+```
+
