@@ -441,8 +441,6 @@ state_tensor = torch.cat([torch.Tensor([state.self_state + human_state]).to(self
                       for human_state in state.human_states], dim=0)
 ```
 
-
-
 ```python
 round is: 7
 tensor([[ 8.0000,  1.0000,  0.0000,  0.3000,  0.0000, -0.0000, -0.1905, -0.8070,
@@ -456,6 +454,128 @@ tensor([[ 8.0000,  1.0000,  0.0000,  0.3000,  0.0000, -0.0000, -0.1905, -0.8070,
         [ 8.0000,  1.0000,  0.0000,  0.3000,  0.0000, -0.0000,  2.1060, -3.4071,
           0.0000, -0.0000,  0.3000,  4.0054,  0.6000]])
 # 
+[dg, v_pref, theta, radius, vx, vy, px1, py1, vx1, vy1, radius1, da, radius_sum]
+```
+
+```python
+def input_dim(self):
+        return self.joint_state_dim + (self.cell_num ** 2 * self.om_channel_size if self.with_om else 0)
+#joint_state_dim = self.self_state_dim + self.human_state_dim
+#self.self_state_dim = 6
+#self.human_state_dim = 7
+```
+
+```latex
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage[linesnumbered,ruled]{algorithm2e}
+
+\title{crowd_nav}
+\author{LC UP}
+\date{August 2023}
+
+\begin{document}
+
+\section{ Dynamic }
+\begin{algorithm}
+
+\KwIn{global\_arguments,\ action: $a_{robot}$}
+\eIf{robot is visible}{
+Get all humans' state $s_i\ i \in 1,2 ... 5 $ and robot' state $s_{robot}$\\}{
+Get all humans' state $s_i\ i \in 1,2 ... 5 $
+}
+Calculate all humans' action $a_{human\_i}$ using orca \\
+Detection collision between robot and humans \\
+Detection collision between humans (just for warning) \\
+Check if reaching the goal \\
+Calculate reward \\
+Check if terminal conditions were satisfied \\
+Update robot's state and humans's state \\
+Get observation ob \\
+
+\KwOut{ob\ reward\ done\ info}
+\caption{Env\_Step}
+\end{algorithm}
+
+\section{Train}
+\begin{algorithm}
+
+Loading configuration of env, policy and train \\
+Initialize file path and logging \\
+Implement \textbf{memory} using for experience replay \\
+Implement value network: \textbf{model} \\
+Implement \textbf{trainer} with \\
+\KwIn{model, memory, device, batch\_size}
+Implement \textbf{explorer} with \\
+\KwIn{env, robot, device, memory, policy.gamma, target\_policy=policy}
+\BlankLine
+\textbf{Start imitation learning} \\
+\uIf{args.resume}{
+Load rl model weight file
+}\uElseIf{il weight file exist}{
+Load il model weight file
+}\Else{
+Set training configuration \\
+Set robot policy as orca \\
+Call explorer.run\_k\_episodes with \\
+\KwIn{il\_episodes, train, update\_memory=True, imitation\_learning=True}
+}
+
+Call trainer.optimize\_epoch with \\
+\KwIn{il\_epochs}
+
+Save weight of model
+\BlankLine
+\textbf{Start reinforcement learning} \\
+Set robot policy as sarl \\
+Set training configuration \\
+\lIf{args.resume}{
+Set epsilon as epsilon\_end \\
+Fill the memory pool with calling explorer.run\_k\_episodes
+}
+\While{episode < train\_episodes}{
+Update epsilon \\
+Call explorer.run\_k\_episodes with \\
+\KwIn{sample\_episodes, train, update\_memory=True, episode=episode}
+Call trainer.optimize\_batch with \\
+\KwIn{train\_batches}
+Save weight of model
+}
+
+\caption{Train}
+\end{algorithm}
+
+
+\section{Forward}
+\begin{algorithm}
+
+\KwIn{state}
+\BlankLine
+Pass data through mlp1 layer with \\
+\KwIn{data\ size:\ [5, 13]}
+\KwOut{data\ size:\ [5, 100]}
+Pass data through mlp2 layer with \\
+\KwIn{data\ size:\ [5, 100]}
+\KwOut{data\ size:\ [5, 50]}
+\uIf{with\_global\_state}{
+Add Mean of mlp1's output with mlp2's output and form attention\_input
+}\Else{
+Let mlp1's output as attention\_input
+}
+Calculate attention scores data\ size:\ [1, 5] \\
+Calculate attention weights using softmax \\
+Multiple weights and mlp2's output and form weighted\_feature \\
+add weighted\_feature and self\_state as joint\_state \\
+pass joint\_state to mlp3 and output value
+
+\BlankLine
+\KwOut{value}
+
+\caption{Network\_Forward}
+\end{algorithm}
+
+\end{document}
+
 
 ```
 
