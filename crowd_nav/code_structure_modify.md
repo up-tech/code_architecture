@@ -89,7 +89,7 @@ $R_t(s_t^{jn}, a_t)=\begin{cases}
 
 #### Dynamic
 
-![](images\step.png)
+![](images/step.png)
 
 ### Network
 
@@ -131,11 +131,11 @@ ValueNetwork(
 
 #### Forward
 
-![](images\forward.png)
+![](images/forward.png)
 
 ### Training Process
 
-![](images\train.png)
+![](images/train.png)
 
 ### Testing Process
 
