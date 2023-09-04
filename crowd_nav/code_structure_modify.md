@@ -87,7 +87,7 @@ $R_t(s_t^{jn}, a_t)=\begin{cases}
 - Reaching goal
 - Collision
 
-#### Dynamic
+#### Dynamics
 
 ![](images/step.png)
 
