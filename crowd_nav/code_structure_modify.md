@@ -68,12 +68,12 @@ human_state:   $w_i = [p_x, p_y, v_x, v_y, r_i, d_i, r_i + r]$
 
 #### Reward
 
-$R_t(s_t^{jn}, a_t)=\begin{cases}
--0.25 & \text{$if\ d_t < 0$} \\
--0.1+d_t/2 & \text{$else\ if\ d_t < 0.2$} \\
-1 & \text{$else\ if\ p_t = p_=g$} \\
-0 & \text{$otherwise$}  
-\end{cases}$
+$R_t(s_t^{jn}, a_t)=\left\{\begin{aligned}
+&-0.25 && \text{$if\ d_t < 0$} \\
+&-0.1+d_t/2 && \text{$else\ if\ d_t < 0.2$} \\
+&1 && \text{$else\ if\ p_t = p_=g$} \\
+&0 && \text{$otherwise$}  
+\end{aligned}\right.$
 
 #### Action
 
@@ -87,13 +87,13 @@ $R_t(s_t^{jn}, a_t)=\begin{cases}
 - Reaching goal
 - Collision
 
-#### Dynamic
+#### Dynamics
 
 ![](images/step.png)
 
-### Network
+### Value Network
 
-#### Structure
+
 
 draw a graph
 
