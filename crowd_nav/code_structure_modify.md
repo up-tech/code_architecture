@@ -93,9 +93,9 @@ $R_t(s_t^{jn}, a_t)=\left\{\begin{aligned}
 
 ### Value Network
 
+#### Structure
 
-
-draw a graph
+![](images/value_network.png)
 
 ```python
 ValueNetwork(
@@ -129,17 +129,33 @@ ValueNetwork(
 )
 ```
 
-#### Forward
-
 ![](images/forward.png)
 
 ### Training Process
 
+- **main**
+
 ![](images/train.png)
+
+- **explorer.run_k_episodes**
+
+![](images/explorer_run.png)
+
+- **update_memory**
+
+![](images/update_memory.png)
+
+- **trainer.optimize_epoch**
+
+![](images/trainer_epoch.png)
+
+- **trainer.optimize_batch**
+
+![](images/trainer_batch.png)
 
 ### Testing Process
 
-
+![](images/test.png)
 
 **Code**
 

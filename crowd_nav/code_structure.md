@@ -476,9 +476,7 @@ def input_dim(self):
 
 \begin{document}
 
-\section{ Dynamic }
 \begin{algorithm}
-
 \KwIn{global\_arguments,\ action: $a_{robot}$}
 \eIf{robot is visible}{
 Get all humans' state $s_i\ i \in 1,2 ... 5 $ and robot' state $s_{robot}$\\}{
@@ -492,14 +490,12 @@ Calculate reward \\
 Check if terminal conditions were satisfied \\
 Update robot's state and humans's state \\
 Get observation ob \\
-
 \KwOut{ob\ reward\ done\ info}
 \caption{Env\_Step}
 \end{algorithm}
 
-\section{Train}
-\begin{algorithm}
 
+\begin{algorithm}
 Loading configuration of env, policy and train \\
 Initialize file path and logging \\
 Implement \textbf{memory} using for experience replay \\
@@ -520,10 +516,8 @@ Set robot policy as orca \\
 Call explorer.run\_k\_episodes with \\
 \KwIn{il\_episodes, train, update\_memory=True, imitation\_learning=True}
 }
-
 Call trainer.optimize\_epoch with \\
 \KwIn{il\_epochs}
-
 Save weight of model
 \BlankLine
 \textbf{Start reinforcement learning} \\
@@ -533,7 +527,7 @@ Set training configuration \\
 Set epsilon as epsilon\_end \\
 Fill the memory pool with calling explorer.run\_k\_episodes
 }
-\While{episode < train\_episodes}{
+\While{$episode < train\_episodes$}{
 Update epsilon \\
 Call explorer.run\_k\_episodes with \\
 \KwIn{sample\_episodes, train, update\_memory=True, episode=episode}
@@ -541,14 +535,12 @@ Call trainer.optimize\_batch with \\
 \KwIn{train\_batches}
 Save weight of model
 }
-
 \caption{Train}
 \end{algorithm}
 
 
-\section{Forward}
-\begin{algorithm}
 
+\begin{algorithm}
 \KwIn{state}
 \BlankLine
 Pass data through mlp1 layer with \\
@@ -567,11 +559,92 @@ Calculate attention weights using softmax \\
 Multiple weights and mlp2's output and form weighted\_feature \\
 add weighted\_feature and self\_state as joint\_state \\
 pass joint\_state to mlp3 and output value
-
 \BlankLine
 \KwOut{value}
-
 \caption{Network\_Forward}
+\end{algorithm}
+
+
+\begin{algorithm}
+\KwIn{k, phase, update\_memory, imitation\_learning}
+\BlankLine
+\For{ $episode < k$}{
+Reset env \\
+\While{not\ done}{
+\uIf{policy == orca}{
+Generate action according orca \\
+}\Else{
+\tcc{write more detailed}
+Generate action according sarl \\
+}
+Collect states,\ actions,\ rewards \\
+\tcc{update\_memory always true when training}
+\If{update\_memory}{
+Update\_memory when success or collision \\
+}
+}{$epidode+=1$}
+}
+\caption{explorer.run\_k\_episodes}
+\end{algorithm}
+
+
+\begin{algorithm}
+\KwIn{states, actions, rewards, imitation\_learning}
+\BlankLine
+\For{$i < len(states)$}{
+\uIf{imitation\_learning}{
+Calculate value \\
+}\Else{
+Calculate value \\
+}
+Push state and value in memory \\
+}{$i+=1$}
+\caption{update\_memory}
+\end{algorithm}
+
+\begin{algorithm}
+\KwIn{num\_epochs}
+\BlankLine
+\tcc{Using\ SGD\ as\ optimizer}
+\For{$epoch < num_epochs$}{
+\For{$data in memory$}{
+Calculate loss \\
+Loss backward \\
+Update model \\
+}
+}{$i+=1$}
+\caption{trainer.optimize\_epoch}
+\end{algorithm}
+
+
+\begin{algorithm}
+\KwIn{num\_epochs}
+\BlankLine
+\tcc{Using\ SGD\ as\ optimizer}
+\For{$epoch < num_epochs$}{
+\For{$data in memory$}{
+Calculate loss \\
+Loss backward \\
+Update model \\
+}
+}{$i+=1$}
+\caption{trainer.optimize\_batch}
+\end{algorithm}
+
+
+\begin{algorithm}
+Loading configuration of env, policy and train \\
+Initialize file path and logging \\
+Implement \textbf{memory} using for experience replay \\
+Implement value network: \textbf{model} \\
+Implement \textbf{explorer} with \\
+\KwIn{env, robot, device, gamma}
+\While{not\ done}{
+\tcc{write more detailed}
+Generate action according sarl \\
+Update env}
+
+\caption{Test}
 \end{algorithm}
 
 \end{document}
