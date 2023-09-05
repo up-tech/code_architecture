@@ -11,3 +11,7 @@
 #### Time to goal
 
 <img src="images/time_to_goal.png" style="zoom: 50%;" />
+
+- 怎么得到ped 1, 2, attention scores
+- interaction pooling
+- sarl + gazebo
