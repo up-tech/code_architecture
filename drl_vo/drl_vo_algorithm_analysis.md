@@ -445,9 +445,7 @@ def scan_callback(self, laserScan_msg):
 
 ### Reward
 
-$\begin{equation}
-r^t=r_g^t+r_c^t+r_w^t+r_d^t
-\end{equation}$
+$r^t=r_g^t+r_c^t+r_w^t+r_d^t$
 
 **r<sub>g</sub><sup>t</sup>** : encourage robot move towards goal,  awarded when reaching the goal, penilized when timeout
 
