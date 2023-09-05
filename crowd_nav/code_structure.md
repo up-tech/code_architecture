@@ -2,6 +2,8 @@
 
 ### Overview
 
+![](images/overview.png)
+
 ### Code Structure
 
 ```
@@ -21,7 +23,6 @@
 │   ├── __init__.py
 │   ├── policy
 │   │   ├── cadrl.py
-│   │   ├── __init__.py
 │   │   ├── lstm_rl.py
 │   │   ├── multi_human_rl.py
 │   │   ├── policy_factory.py
@@ -30,16 +31,13 @@
 │   ├── train.py
 │   └── utils
 │       ├── explorer.py
-│       ├── __init__.py
 │       ├── memory.py
 │       ├── plot.py
 │       └── trainer.py
 ├── crowd_sim
 │   ├── envs
 │   │   ├── crowd_sim.py
-│   │   ├── __init__.py
 │   │   ├── policy
-│   │   │   ├── __init__.py
 │   │   │   ├── linear.py
 │   │   │   ├── orca.py
 │   │   │   ├── policy_factory.py
@@ -49,11 +47,9 @@
 │   │       ├── agent.py
 │   │       ├── human.py
 │   │       ├── info.py
-│   │       ├── __init__.py
 │   │       ├── robot.py
 │   │       ├── state.py
 │   │       └── utils.py
-│   ├── __init__.py
 │   └── README.md
 ├── LICENSE
 ├── README.md
@@ -62,19 +58,112 @@
 
 ### Environment Setup
 
-#### Env
+#### Observation
 
-```mermaid
-flowchart TD
-    id1(collect all humans observation)-->id2(generate humans action);
-    id2(generate humans action)-->id3(check collision);
-    id3(check collision)-->id4(check goal reached);
-    id4(check goal reached)-->id5(calculate reward & check terminal);
-    id5(calculate reward & check terminal)-->id6(update robot and humans state);
-    id6(update robot and humans state)-->id7(get next observation);
+self_state:        $s = [d_g, v_{pref}, v_x, v_y, r]$
+
+human_state:   $w_i = [p_x, p_y, v_x, v_y, r_i, d_i, r_i + r]$
+
+- $d_g$ : robot's distance to the goal
+- $d_i$ : robot's distance to the human i 
+- Source of observation data: Ground truth in gym environment
+
+**Code**
+
+```python
+#file location: CrowdNav/crowd_sim/envs/utils/robot.py
+state = JointState(self.get_full_state(), ob)
 ```
 
-##### Step
+#### Reward
+
+$R_t(s_t^{jn}, a_t)=\left\{\begin{aligned}
+&-0.25 && \text{$if\ d_t < 0$} \\
+&-0.1+d_t/2 && \text{$else\ if\ d_t < 0.2$} \\
+&1 && \text{$else\ if\ p_t = p_=g$} \\
+&0 && \text{$otherwise$}  
+\end{aligned}\right.$
+
+**Code**
+
+```python
+#file location: CrowdNav/crowd_sim/envs/utils/crowd_sim.py
+
+if self.global_time >= self.time_limit - 1:
+    reward = 0
+    done = True
+    info = Timeout()
+elif collision:
+    reward = self.collision_penalty
+    done = True
+    info = Collision()
+elif reaching_goal:
+    reward = self.success_reward
+    done = True
+    info = ReachGoal()
+elif dmin < self.discomfort_dist:
+    reward = (dmin - self.discomfort_dist) * self.discomfort_penalty_factor * self.time_step
+    done = False
+    info = Danger(dmin)
+else:
+    reward = 0
+    done = False
+    info = Nothing()
+```
+
+#### Action
+
+- The action space consists of 80 discrete actions: 
+  1. 5 speeds exponentially spaced between $(0, v_{pref}]$
+  2. 16 headings evenly spaced between $[0, 2\pi)$
+
+**Code**
+
+```python
+#file location: CrowdNav/crowd_nav/policy/cadrl.py
+
+speeds = [(np.exp((i + 1) / self.speed_samples) - 1) / (np.e - 1) * v_pref for i in range(self.speed_samples)]
+if holonomic:
+    rotations = np.linspace(0, 2 * np.pi, self.rotation_samples, endpoint=False)
+else:
+    rotations = np.linspace(-np.pi / 4, np.pi / 4, self.rotation_samples)
+
+action_space = [ActionXY(0, 0) if holonomic else ActionRot(0, 0)]
+```
+
+#### Terminal condition
+
+- Timeout
+- Reaching goal
+- Collision
+
+**Code**
+
+- The code location is the same as reward
+
+#### Dynamics
+
+**env.step()**
+
+```pseudocode
+Input: global arguments, action: arobot
+1 if robot is visible then
+2   Get all humans’ state si i ∈ 1, 2...5 and robot’ state srobot
+3 else
+4   Get all humans’ state si i ∈ 1, 2...5
+5 end
+6 Calculate all humans’ action ahuman i using orca
+7 Detection collision between robot and humans
+8 Detection collision between humans (just for warning)
+9 Check if reaching the goal
+10 Calculate reward
+11 Check if terminal conditions were satisfied
+12 Update robot’s state and humans’s state
+13 Get observation ob
+Output: ob reward done info
+```
+
+**Code**
 
 ```python
 #file location: CrowdNav/crowd_sim/envs/utils/crowd_sim.py
@@ -185,8 +274,6 @@ def step(self, action, update=True):
     return ob, reward, done, info
 ```
 
-##### Reset
-
 ```python
 #file location: CrowdNav/crowd_sim/envs/utils/crowd_sim.py
 
@@ -254,401 +341,201 @@ def reset(self, phase='test', test_case=None):
     return ob
 ```
 
-#### Observation
+### Value Network
 
-$p_x,p_y,v_x,v_y,radius$
+#### Structure
 
-p<sub>x</sub> : human's position x
-p<sub>y</sub> : human's position y
-v<sub>x</sub> : human's velocity x
-v<sub>y</sub> : human's velocity y
-radius : human's radius
-
-- Source of observation data: Ground truth in gym environment
-- Collect each human's $p_x,p_y,v_x,v_y,radius$ and form the observation
+![](images/value_network.png)
 
 ```python
-#file location: CrowdNav/crowd_sim/envs/utils/agents.py
-
-def get_next_observable_state(self, action):
-    self.check_validity(action)
-    pos = self.compute_position(action, self.time_step)
-    next_px, next_py = pos
-    if self.kinematics == 'holonomic':
-        next_vx = action.vx
-        next_vy = action.vy
-    else:
-        next_theta = self.theta + action.r
-        next_vx = action.v * np.cos(next_theta)
-        next_vy = action.v * np.sin(next_theta)
-return ObservableState(next_px, next_py, next_vx, next_vy, self.radius)
+ValueNetwork(
+  (mlp1): Sequential(
+    (0): Linear(in_features=13, out_features=150, bias=True)
+    (1): ReLU()
+    (2): Linear(in_features=150, out_features=100, bias=True)
+    (3): ReLU()
+  )
+  (mlp2): Sequential(
+    (0): Linear(in_features=100, out_features=100, bias=True)
+    (1): ReLU()
+    (2): Linear(in_features=100, out_features=50, bias=True)
+  )
+  (attention): Sequential(
+    (0): Linear(in_features=200, out_features=100, bias=True)
+    (1): ReLU()
+    (2): Linear(in_features=100, out_features=100, bias=True)
+    (3): ReLU()
+    (4): Linear(in_features=100, out_features=1, bias=True)
+  )
+  (mlp3): Sequential(
+    (0): Linear(in_features=56, out_features=150, bias=True)
+    (1): ReLU()
+    (2): Linear(in_features=150, out_features=100, bias=True)
+    (3): ReLU()
+    (4): Linear(in_features=100, out_features=100, bias=True)
+    (5): ReLU()
+    (6): Linear(in_features=100, out_features=1, bias=True)
+  )
+)
 ```
 
-#### Reward
+- Assume there are 5 humans and with_global_state is set to true, we can get state:
 
-add formula
+$\begin{aligned}&state = [state1, state2, ..., state5] \\ &state1 = [self\_data, human1\_data, local\_map1] \\ &self\_data = [dg, v\_pref, theta, radius, vx, vy] \\ &human1\_data = [px1, py1, vx1, vy1, radius1, da, radius\_sum] \\ &local\_map1 = [4 * 4]\end{aligned}$
 
-```python
-#file location: CrowdNav/crowd_sim/envs/utils/crowd_sim.py
+![](images/forward1.png)
 
-if self.global_time >= self.time_limit - 1:
-    reward = 0
-    done = True
-    info = Timeout()
-elif collision:
-    reward = self.collision_penalty
-    done = True
-    info = Collision()
-elif reaching_goal:
-    reward = self.success_reward
-    done = True
-    info = ReachGoal()
-elif dmin < self.discomfort_dist:
-    # only penalize agent for getting too close if it's visible
-    # adjust the reward based on FPS
-    reward = (dmin - self.discomfort_dist) * self.discomfort_penalty_factor * self.time_step
-    done = False
-    info = Danger(dmin)
-else:
-    reward = 0
-    done = False
-    info = Nothing()
+![](images/forward2.png)
+
+```pseudocode
+Input: state
+1 Pass data through mlp1 layer with
+Input: data size: [5, 13]
+Output: data size: [5, 100]
+2 Pass data through mlp2 layer with
+Input: data size: [5, 100]
+Output: data size: [5, 50]
+3 if with global state then
+4   Add Mean of mlp1’s output with mlp1’s output and form attention input
+5 else
+6   Let mlp1’s output as attention input
+7 end
+8 Calculate attention scores data size: [1, 5]
+9 Calculate attention weights using softmax
+10 Multiple weights with mlp2’s output then form weighted feature
+11 add weighted feature with self state as joint state
+12 pass joint state to mlp3 then output value
+Output: value
 ```
-
-#### Action
-
-#### Terminal
-
-### Network Structure
 
 ### Training Process
 
-```mermaid
----
-title: Training
----
+- **main**
 
-flowchart TD
-  configure["path
-  logging
-  environment"]
-  
-  load_config["env.config
-  policy.config
-  train.config"]
-  
-  il["imitation_learning"]
-  
-  rl["reinforcement_learning"]
-  
-  trainer["configure trainer"]
-  
-  explorer["configure explorer"]
-  
-  configure --> load_config;
-  load_config --> trainer;
-  trainer --> explorer;
-  explorer --> il;
-  il --> rl;
-  
+```pseudocode
+1 Loading configuration of env, policy and train
+2 Initialize file path and logging
+3 Implement memory using for experience replay
+4 Implement value network: model
+5 Implement trainer with
+Input: model, memory, device, batch size
+6 Implement explorer with
+Input: env, robot, device, memory, policy.gamma, target policy=policy
+7 Start imitation learning
+8 if args.resume then
+9    Load rl model weight file
+10 else if il weight file exist then
+11   Load il model weight file
+12 else
+13   Set training configuration
+14   Set robot policy as orca
+15   Call explorer.run k episodes with
+     Input: il episodes, train, update memory=True,
+     imitation learning=True
+16 end
+17 Call trainer.optimize epoch with
+   Input: il epochs
+18 Save weight of model
+19 Start reinforcement learning
+20 Set robot policy as sarl
+21 Set training configuration
+22 if args.resume then Set epsilon as epsilon end
+23   Fill the memory pool with calling explorer.run k episodes ;
+24 while episode < train episodes do
+25   Update epsilon
+26   Call explorer.run k episodes with
+     Input: sample episodes, train, update memory=True, episode=episode
+27   Call trainer.optimize batch with
+     Input: train batches
+28 Save weights of model
+29 end
 ```
 
+- **explorer.run_k_episodes**
+
+```pseudocode
+Input: k, phase, update memory, imitation learning
+1 for episode < k do
+2   Reset env
+3 while not done do
+4   if policy == orca then
+5     Generate action according orca
+6   else
+      /* write more detailed */
+7     Generate action according sarl
+8   end
+9   Collect states, actions, rewards
+    /* update memory always true when training */
+10  if update memory then
+11    Update memory when success or collision
+12  end
+13 end
+14 epidode+ = 1
+15 end
 ```
-#implement trainer class
-trainer = Trainer(model, memory, device, batch_size)
-#input:
-#  model: sarl
-#  memory: use for replay data which is generated by explorer
-#  device: cpu or gpu
-#  batch_size: 100
+
+- **update_memory**
+
+```pseudocode
+Input: states, actions, rewards, imitation learning
+1 for i < len(states) do
+2   if imitation learning then
+3     Calculate value
+4   else
+5     Calculate value
+6   end
+7   Push state and value in memory
+9 i+ = 1
+8 end
 ```
 
+- **trainer.optimize_epoch**
+
+```pseudocode
+Input: num epochs
+/* Using SGD as optimizer */
+1 for epoch < numepochs do
+2   for datainmemory do
+3     Calculate loss
+4     Loss backward
+5     Update model
+6   end
+7 epoch += 1
+8 end
 ```
-#implement explorer class
-explorer = Explorer(env, robot, device, memory, policy.gamma, target_policy=policy)
-#input:
-#  env: 'CrowdSim-v0'
-#  robot: robot class(inherit class agent)
-#  memory: store simulation data
-#  policy.gamma: 
-#  target_policy=policy: 
+
+- **trainer.optimize_batch**
+
+```pseudocode
+Input: num epochs
+/* Using SGD as optimizer */
+1 for epoch < numepochs do
+2   for datainmemory do
+3   Calculate loss
+4   Loss backward
+5   Update model
+6   end
+7 epoch += 1
+8 end
 ```
-
-process of **imitation learning**
-
-1. set parameters
-
-2. set robot policy ORCA
-
-3. ```
-   explorer.run_k_episodes(il_episodes, 'train', update_memory=True, imitation_learning=True)
-   ```
-
-3. ```
-   #exec update memory for each one of episodes
-   self.update_memory(states, actions, rewards, imitation_learning)
-   ```
-
-4. ```
-   self.memory.push((state, value))
-   #todo finger out how to process state and value
-   ```
-
-5. ```
-   trainer.optimize_epoch(il_epochs)
-   #elf.optimizer = optim.SGD(self.model.parameters(), lr=learning_rate, momentum=0.9)
-   #using SGD to optimize network
-   ```
-
-6. saving model weight
-
-process of **reinforcement learning**
-
-1. set parameters (learning rate \ epsilon)
-
-2. set policy SARL
-
-3. ```
-   explorer.run_k_episodes(sample_episodes, 'train', update_memory=True, episode=episode)
-   ```
-
-4. ```
-   trainer.optimize_batch(train_batches)
-   ```
-
-5. saving model weight
 
 ### Testing Process
 
----
-
-$\sum_{s=0}^{total-steps} (\gamma^{s\cdot 0.25\cdot 1}*reward_s )\\\\0.25: robot.time\_step\\1: robot.v\_pref$
-
-```python
-self.update_memory(states, actions, rewards, imitation_learning)
-
-state = JointState(self.get_full_state(), ob)
-#full state: px, py, vx, vy, radius, gx, gy, v_pref, theta (robot)
-#ob: px, py, vx, vy, radius (humans)
-
-state = self.target_policy.transform(state)
-#Take the state passed from agent and transform it to the input of value network
-
+```pseudocode
+1 Loading configuration of env, policy and train
+2 Initialize file path and logging
+3 Implement memory using for experience replay
+4 Implement value network: model
+5 Implement explorer with
+Input: env, robot, device, gamma
+6 while not done do
+    /* write more detailed */
+7   Generate action according sarl
+8   Update env
+9 end
 ```
 
-```python
-state_tensor = torch.cat([torch.Tensor([state.self_state + human_state]).to(self.device)
-                      for human_state in state.human_states], dim=0)
-```
-
-```python
-round is: 7
-tensor([[ 8.0000,  1.0000,  0.0000,  0.3000,  0.0000, -0.0000, -0.1905, -0.8070,
-          0.0000, -0.0000,  0.3000,  0.8292,  0.6000],
-        [ 8.0000,  1.0000,  0.0000,  0.3000,  0.0000, -0.0000,  6.4962, -3.3679,
-          0.0000, -0.0000,  0.3000,  7.3173,  0.6000],
-        [ 8.0000,  1.0000,  0.0000,  0.3000,  0.0000, -0.0000,  6.2920,  2.6839,
-          0.0000, -0.0000,  0.3000,  6.8405,  0.6000],
-        [ 8.0000,  1.0000,  0.0000,  0.3000,  0.0000, -0.0000,  4.4402,  3.9008,
-          0.0000, -0.0000,  0.3000,  5.9102,  0.6000],
-        [ 8.0000,  1.0000,  0.0000,  0.3000,  0.0000, -0.0000,  2.1060, -3.4071,
-          0.0000, -0.0000,  0.3000,  4.0054,  0.6000]])
-# 
-[dg, v_pref, theta, radius, vx, vy, px1, py1, vx1, vy1, radius1, da, radius_sum]
-```
-
-```python
-def input_dim(self):
-        return self.joint_state_dim + (self.cell_num ** 2 * self.om_channel_size if self.with_om else 0)
-#joint_state_dim = self.self_state_dim + self.human_state_dim
-#self.self_state_dim = 6
-#self.human_state_dim = 7
-```
-
-```latex
-\documentclass{article}
-\usepackage{graphicx} % Required for inserting images
-\usepackage[linesnumbered,ruled]{algorithm2e}
-
-\title{crowd_nav}
-\author{LC UP}
-\date{August 2023}
-
-\begin{document}
-
-\begin{algorithm}
-\KwIn{global\_arguments,\ action: $a_{robot}$}
-\eIf{robot is visible}{
-Get all humans' state $s_i\ i \in 1,2 ... 5 $ and robot' state $s_{robot}$\\}{
-Get all humans' state $s_i\ i \in 1,2 ... 5 $
-}
-Calculate all humans' action $a_{human\_i}$ using orca \\
-Detection collision between robot and humans \\
-Detection collision between humans (just for warning) \\
-Check if reaching the goal \\
-Calculate reward \\
-Check if terminal conditions were satisfied \\
-Update robot's state and humans's state \\
-Get observation ob \\
-\KwOut{ob\ reward\ done\ info}
-\caption{Env\_Step}
-\end{algorithm}
+**Code**
 
 
-\begin{algorithm}
-Loading configuration of env, policy and train \\
-Initialize file path and logging \\
-Implement \textbf{memory} using for experience replay \\
-Implement value network: \textbf{model} \\
-Implement \textbf{trainer} with \\
-\KwIn{model, memory, device, batch\_size}
-Implement \textbf{explorer} with \\
-\KwIn{env, robot, device, memory, policy.gamma, target\_policy=policy}
-\BlankLine
-\textbf{Start imitation learning} \\
-\uIf{args.resume}{
-Load rl model weight file
-}\uElseIf{il weight file exist}{
-Load il model weight file
-}\Else{
-Set training configuration \\
-Set robot policy as orca \\
-Call explorer.run\_k\_episodes with \\
-\KwIn{il\_episodes, train, update\_memory=True, imitation\_learning=True}
-}
-Call trainer.optimize\_epoch with \\
-\KwIn{il\_epochs}
-Save weight of model
-\BlankLine
-\textbf{Start reinforcement learning} \\
-Set robot policy as sarl \\
-Set training configuration \\
-\lIf{args.resume}{
-Set epsilon as epsilon\_end \\
-Fill the memory pool with calling explorer.run\_k\_episodes
-}
-\While{$episode < train\_episodes$}{
-Update epsilon \\
-Call explorer.run\_k\_episodes with \\
-\KwIn{sample\_episodes, train, update\_memory=True, episode=episode}
-Call trainer.optimize\_batch with \\
-\KwIn{train\_batches}
-Save weight of model
-}
-\caption{Train}
-\end{algorithm}
-
-
-
-\begin{algorithm}
-\KwIn{state}
-\BlankLine
-Pass data through mlp1 layer with \\
-\KwIn{data\ size:\ [5, 13]}
-\KwOut{data\ size:\ [5, 100]}
-Pass data through mlp2 layer with \\
-\KwIn{data\ size:\ [5, 100]}
-\KwOut{data\ size:\ [5, 50]}
-\uIf{with\_global\_state}{
-Add Mean of mlp1's output with mlp2's output and form attention\_input
-}\Else{
-Let mlp1's output as attention\_input
-}
-Calculate attention scores data\ size:\ [1, 5] \\
-Calculate attention weights using softmax \\
-Multiple weights and mlp2's output and form weighted\_feature \\
-add weighted\_feature and self\_state as joint\_state \\
-pass joint\_state to mlp3 and output value
-\BlankLine
-\KwOut{value}
-\caption{Network\_Forward}
-\end{algorithm}
-
-
-\begin{algorithm}
-\KwIn{k, phase, update\_memory, imitation\_learning}
-\BlankLine
-\For{ $episode < k$}{
-Reset env \\
-\While{not\ done}{
-\uIf{policy == orca}{
-Generate action according orca \\
-}\Else{
-\tcc{write more detailed}
-Generate action according sarl \\
-}
-Collect states,\ actions,\ rewards \\
-\tcc{update\_memory always true when training}
-\If{update\_memory}{
-Update\_memory when success or collision \\
-}
-}{$epidode+=1$}
-}
-\caption{explorer.run\_k\_episodes}
-\end{algorithm}
-
-
-\begin{algorithm}
-\KwIn{states, actions, rewards, imitation\_learning}
-\BlankLine
-\For{$i < len(states)$}{
-\uIf{imitation\_learning}{
-Calculate value \\
-}\Else{
-Calculate value \\
-}
-Push state and value in memory \\
-}{$i+=1$}
-\caption{update\_memory}
-\end{algorithm}
-
-\begin{algorithm}
-\KwIn{num\_epochs}
-\BlankLine
-\tcc{Using\ SGD\ as\ optimizer}
-\For{$epoch < num_epochs$}{
-\For{$data in memory$}{
-Calculate loss \\
-Loss backward \\
-Update model \\
-}
-}{$i+=1$}
-\caption{trainer.optimize\_epoch}
-\end{algorithm}
-
-
-\begin{algorithm}
-\KwIn{num\_epochs}
-\BlankLine
-\tcc{Using\ SGD\ as\ optimizer}
-\For{$epoch < num_epochs$}{
-\For{$data in memory$}{
-Calculate loss \\
-Loss backward \\
-Update model \\
-}
-}{$i+=1$}
-\caption{trainer.optimize\_batch}
-\end{algorithm}
-
-
-\begin{algorithm}
-Loading configuration of env, policy and train \\
-Initialize file path and logging \\
-Implement \textbf{memory} using for experience replay \\
-Implement value network: \textbf{model} \\
-Implement \textbf{explorer} with \\
-\KwIn{env, robot, device, gamma}
-\While{not\ done}{
-\tcc{write more detailed}
-Generate action according sarl \\
-Update env}
-
-\caption{Test}
-\end{algorithm}
-
-\end{document}
-
-
-```
 

@@ -45,3 +45,7 @@ self.attention_weights = weights[0, :, 0].data.cpu().numpy()
 - 怎么得到ped 1, 2, attention scores
 - interaction pooling
 - sarl + gazebo
+
+---
+
+$\sum_{s=0}^{total-steps} (\gamma^{s\cdot 0.25\cdot 1}*reward_s )\\\\0.25: robot.time\_step\\1: robot.v\_pref$
