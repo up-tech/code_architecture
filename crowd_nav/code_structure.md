@@ -78,10 +78,10 @@ state = JointState(self.get_full_state(), ob)
 #### Reward
 
 $R_t(s_t^{jn}, a_t)=\left\{\begin{align}
-&-0.25 && \text{$if\ d_t < 0$} \\ 
-&-0.1+d_t/2 && \text{$else\ if\ d_t < 0.2$} \\ 
-&1 && \text{$else\ if\ p_t = p_=g$} \\ 
-&0 && \text{$otherwise$}  
+&-0.25 && \text{$$if\ d_t < 0$$} \\ 
+&-0.1+d_t/2 && \text{$$else\ if\ d_t < 0.2$$} \\ 
+&1 && \text{$$else\ if\ p_t = p_=g$$} \\ 
+&0 && \text{$$otherwise$$}  
 \end{align}\right.$
 
 **Code**
