@@ -381,7 +381,7 @@ ValueNetwork(
 
 - Assume there are 5 humans and with_global_state is set to true, we can get state:
 
-$\begin{aligned}&state = [state1, state2, ..., state5] \\ &state1 = [self\_data, human1\_data, local\_map1] \\ &self\_data = [dg, v\_pref, theta, radius, vx, vy] \\ &human1\_data = [px1, py1, vx1, vy1, radius1, da, radius\_sum] \\ &local\_map1 = [4 * 4]\end{aligned}$
+$$\begin{aligned}&state = [state1, state2, ..., state5] \\ &state1 = [self\_data, human1\_data, local\_map1] \\ &self\_data = [dg, v\_pref, theta, radius, vx, vy] \\ &human1\_data = [px1, py1, vx1, vy1, radius1, da, radius\_sum] \\ &local\_map1 = [4 * 4]\end{aligned}$$
 
 ![](images/forward1.png)
 
