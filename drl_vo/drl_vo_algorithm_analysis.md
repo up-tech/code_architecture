@@ -586,14 +586,16 @@ def _compute_reward(self):
 <a name="_goal_reached_reward"></a>
 
 ```math
-r_g^t= \begin{cases}r_{goal} & \text{if}\left\|p_g^t\right\|<g_m \\ -r_{goal} & \text{else if }t \geq t_{max} \\ r_{path}\left(\left\|p_g^{t-1}\right\|-\left\|p_g^t\right\|\right) & \text {otherwise}\end{cases}
+r_g^t= \begin{cases}r_{goal} & \text{if}\ ||p_g^t|| < g_m \\ -r_{goal} & \text{else if }t \geq t_{max} \\ r_{path}||p_g^{t-1}||-||p_g^t||) & \text{otherwise}\end{cases}
 ```
 
 <!--
 
-$$r_g^t= \begin{cases}r_{goal} & \text{if}\left\|p_g^t\right\|<g_m \\ -r_{goal} & \text{else if }t \geq t_{max} \\ r_{path}\left(\left\|p_g^{t-1}\right\|-\left\|p_g^t\right\|\right) & \text {otherwise}\end{cases}$$
+$$r_g^t= \begin{cases}r_{goal} & \text{if}\ ||p_g^t|| < g_m \\ -r_{goal} & \text{else if }t \geq t_{max} \\ r_{path}||p_g^{t-1}||-||p_g^t||) & \text{otherwise}\end{cases}$$
 
 -->
+
+
 
 ```python
 #file location: drl_vo_nav/drl_vo/src/turtlebot_gym/turtlebot_gym/envs/drl_nav_env.py
