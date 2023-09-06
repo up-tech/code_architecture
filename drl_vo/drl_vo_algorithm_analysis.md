@@ -595,8 +595,6 @@ $$r_g^t= \begin{cases}r_{goal} & \text{if}\ ||p_g^t|| < g_m \\ -r_{goal} & \text
 
 -->
 
-
-
 ```python
 #file location: drl_vo_nav/drl_vo/src/turtlebot_gym/turtlebot_gym/envs/drl_nav_env.py
 
