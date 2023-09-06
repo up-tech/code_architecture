@@ -586,12 +586,12 @@ def _compute_reward(self):
 <a name="_goal_reached_reward"></a>
 
 ```math
-r_g^t= \begin{cases}r_{\text {goal }} & \text { if }\left\|p_g^t\right\|<g_m \\ -r_{\text {goal }} & \text { else if } t \geqslant t_{\text {max }} \\ r_{\text {path }}\left(\left\|p_g^{t-1}\right\|-\left\|p_g^t\right\|\right) & \text { otherwise }\end{cases}
+r_g^t= \begin{cases}r_{goal} & \text{if}\left\|p_g^t\right\|<g_m \\ -r_{goal} & \text{else if }t \geq t_{max} \\ r_{path}\left(\left\|p_g^{t-1}\right\|-\left\|p_g^t\right\|\right) & \text {otherwise}\end{cases}
 ```
 
 <!--
 
-$$r_g^t= \begin{cases}r_{\text {goal }} & \text { if }\left\|p_g^t\right\|<g_m \\ -r_{\text {goal }} & \text { else if } t \geqslant t_{\text {max }} \\ r_{\text {path }}\left(\left\|p_g^{t-1}\right\|-\left\|p_g^t\right\|\right) & \text { otherwise }\end{cases}$$
+$$r_g^t= \begin{cases}r_{goal} & \text{if}\left\|p_g^t\right\|<g_m \\ -r_{goal} & \text{else if }t \geq t_{max} \\ r_{path}\left(\left\|p_g^{t-1}\right\|-\left\|p_g^t\right\|\right) & \text {otherwise}\end{cases}$$
 
 -->
 
