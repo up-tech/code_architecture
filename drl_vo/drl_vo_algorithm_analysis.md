@@ -176,7 +176,7 @@ $\left.o^t=\left[l^t, p^t, g^t\right)\right]$
   o^t=2\frac{o^t-o_{min}^t}{o_{max}^t-o_{min}^t}-1
   ```
   
-  $$o^t=2\frac{o^t-o_{min}^t}{o_{max}^t-o_{min}^t}-1$$
+  $o^t=2\frac{o^t-o_{min}^t}{o_{max}^t-o_{min}^t}-1$
 
 **observation function relationships**
 
@@ -678,7 +678,7 @@ def _obstacle_collision_punish(self, scan, r_scan, r_collision):
 r_w^t= \begin{cases}r_{\text {rotation }}\left|\omega_z^t\right| & \text { if }\left|\omega_z^t\right|>\omega_m \\ 0 & \text { otherwise }\end{cases}
 ```
 
-$r_w^t= \begin{cases}r_{\text {rotation }}\left|\omega_z^t\right| & \text { if }\left|\omega_z^t\right|>\omega_m \\ 0 & \text { otherwise }\end{cases}$
+$r_w^t= \begin{cases}r_1\left|\omega_z^t\right| & \text { if } \\ 0 & \text { otherwise }\end{cases}$
 
 ```python
 #file location: drl_vo_nav/drl_vo/src/turtlebot_gym/turtlebot_gym/envs/drl_nav_env.py
