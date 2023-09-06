@@ -172,10 +172,6 @@ $\left.o^t=\left[l^t, p^t, g^t\right)\right]$
 
 - MaxAbsScaler to normalize input observation
 
-  ```math
-  o^t=2\frac{o^t-o_{min}^t}{o_{max}^t-o_{min}^t}-1
-  ```
-  
   $o^t=2\frac{o^t-o_{min}^t}{o_{max}^t-o_{min}^t}-1$
 
 **observation function relationships**
@@ -593,7 +589,11 @@ def _compute_reward(self):
 r_g^t= \begin{cases}r_{\text {goal }} & \text { if }\left\|p_g^t\right\|<g_m \\ -r_{\text {goal }} & \text { else if } t \geq t_{\text {max }} \\ r_{\text {path }}\left(\left\|p_g^{t-1}\right\|-\left\|p_g^t\right\|\right) & \text { otherwise }\end{cases}
 ```
 
+<!--
+
 $$r_g^t= \begin{cases}r_{\text {goal }} & \text { if }\left\|p_g^t\right\|<g_m \\ -r_{\text {goal }} & \text { else if } t \geq t_{\text {max }} \\ r_{\text {path }}\left(\left\|p_g^{t-1}\right\|-\left\|p_g^t\right\|\right) & \text { otherwise }\end{cases}$$
+
+-->
 
 ```python
 #file location: drl_vo_nav/drl_vo/src/turtlebot_gym/turtlebot_gym/envs/drl_nav_env.py
@@ -642,7 +642,7 @@ def _goal_reached_reward(self, r_arrival, r_waypoint):
 <a name="_obstacle_collision_punish"></a>
 
 ```math
-$$r_c^t= \begin{cases}r_{\text {collision }} & \text { if }\left\|p_o^t\right\| \leq d_r \\ r_{\text {obstacle }}\left(d_m-\left\|p_o^t\right\|\right) & \text { else if }\left\|p_o^t\right\| \leq d_m \\ 0 & \text { otherwise }\end{cases}
+r_c^t= \begin{cases}r_{\text {collision }} & \text { if }\left\|p_o^t\right\| \leq d_r \\ r_{\text {obstacle }}\left(d_m-\left\|p_o^t\right\|\right) & \text { else if }\left\|p_o^t\right\| \leq d_m \\ 0 & \text { otherwise }\end{cases}
 ```
 
 $$r_c^t= \begin{cases}r_{\text {collision }} & \text { if }\left\|p_o^t\right\| \leq d_r \\ r_{\text {obstacle }}\left(d_m-\left\|p_o^t\right\|\right) & \text { else if }\left\|p_o^t\right\| \leq d_m \\ 0 & \text { otherwise }\end{cases}$$
@@ -678,7 +678,11 @@ def _obstacle_collision_punish(self, scan, r_scan, r_collision):
 r_w^t= \begin{cases}r_{\text {rotation }}\left|\omega_z^t\right| & \text { if }\left|\omega_z^t\right|>\omega_m \\ 0 & \text { otherwise }\end{cases}
 ```
 
-$r_w^t=\begin{cases}r_1\left|\omega_z^t\right|&\text{if}\\0&\text{otherwise}\end{cases}$
+<!--
+
+$$r_w^t= \begin{cases}r_{\text {rotation }}\left|\omega_z^t\right| & \text { if }\left|\omega_z^t\right|>\omega_m \\ 0 & \text { otherwise }\end{cases}$$
+
+-->
 
 ```python
 #file location: drl_vo_nav/drl_vo/src/turtlebot_gym/turtlebot_gym/envs/drl_nav_env.py
