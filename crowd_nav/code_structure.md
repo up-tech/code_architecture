@@ -1,5 +1,18 @@
 ## Code structure of CrowdNav
 
+<!--
+
+**utils for html showing**
+
+```markdown
+<details>
+  <summary>Code</summary>
+
+</details>
+```
+
+-->
+
 ### Overview
 
 ![](images/overview.png)
@@ -87,11 +100,11 @@ $$R_t(s_t^{jn}, a_t) = \begin{cases} -0.25 & \text{if\ $d_t$ < 0} \\ -0.1+d_t/2 
 
 -->
 
-**Code**
-
+<details>
+  <summary>Code</summary>
+  
 ```python
 #file location: CrowdNav/crowd_sim/envs/utils/crowd_sim.py
-
 if self.global_time >= self.time_limit - 1:
     reward = 0
     done = True
@@ -113,6 +126,8 @@ else:
     done = False
     info = Nothing()
 ```
+
+</details>
 
 #### Action
 
@@ -165,6 +180,8 @@ Input: global arguments, action: arobot
 13 Get observation ob
 Output: ob reward done info
 ```
+
+
 
 **Code**
 
