@@ -173,10 +173,10 @@ $\left.o^t=\left[l^t, p^t, g^t\right)\right]$
 - MaxAbsScaler to normalize input observation
 
   ```math
-  \mathbf{o}^t=2 \frac{\mathbf{o}^t-\mathbf{o}_{\min }^t}{\mathbf{o}_{\max }^t-\mathbf{o}_{\min }^t}-1
+  o^t=2\frac{o^t-o_{min}^t}{o_{max}^t-o_{min}^t}-1
   ```
   
-  $$\mathbf{o}^t=2 \frac{\mathbf{o}^t-\mathbf{o}_{\min }^t}{\mathbf{o}_{\max }^t-\mathbf{o}_{\min }^t}-1$$
+  $$o^t=2\frac{o^t-o_{min}^t}{o_{max}^t-o_{min}^t}-1$$
 
 **observation function relationships**
 
@@ -590,7 +590,7 @@ def _compute_reward(self):
 <a name="_goal_reached_reward"></a>
 
 ```math
-$$r_g^t= \begin{cases}r_{\text {goal }} & \text { if }\left\|p_g^t\right\|<g_m \\ -r_{\text {goal }} & \text { else if } t \geq t_{\text {max }} \\ r_{\text {path }}\left(\left\|p_g^{t-1}\right\|-\left\|p_g^t\right\|\right) & \text { otherwise }\end{cases}
+r_g^t= \begin{cases}r_{\text {goal }} & \text { if }\left\|p_g^t\right\|<g_m \\ -r_{\text {goal }} & \text { else if } t \geq t_{\text {max }} \\ r_{\text {path }}\left(\left\|p_g^{t-1}\right\|-\left\|p_g^t\right\|\right) & \text { otherwise }\end{cases}
 ```
 
 $$r_g^t= \begin{cases}r_{\text {goal }} & \text { if }\left\|p_g^t\right\|<g_m \\ -r_{\text {goal }} & \text { else if } t \geq t_{\text {max }} \\ r_{\text {path }}\left(\left\|p_g^{t-1}\right\|-\left\|p_g^t\right\|\right) & \text { otherwise }\end{cases}$$
