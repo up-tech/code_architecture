@@ -172,6 +172,10 @@ $\left.o^t=\left[l^t, p^t, g^t\right)\right]$
 
 - MaxAbsScaler to normalize input observation
 
+  ```math
+  \mathbf{o}^t=2 \frac{\mathbf{o}^t-\mathbf{o}_{\min }^t}{\mathbf{o}_{\max }^t-\mathbf{o}_{\min }^t}-1
+  ```
+  
   $$\mathbf{o}^t=2 \frac{\mathbf{o}^t-\mathbf{o}_{\min }^t}{\mathbf{o}_{\max }^t-\mathbf{o}_{\min }^t}-1$$
 
 **observation function relationships**
@@ -474,13 +478,13 @@ $r^t=r_g^t+r_c^t+r_w^t+r_d^t$
   - **Input** environment states
   - **Output** reward 
 
-  the reward includes 4 parts (r_g + r_c + r_t + r_w)
+  the reward includes 4 parts $(r_g + r_c + r_t + r_w)$
 
 1. [_goal_reached_reward](#_goal_reached_reward)(self, r_arrival, r_waypoint)
    
    - **Input** environment states(global arg), coefficient
    
-   - **Output** r_g
+   - **Output** $r_g$
    
    - **Func** :
    
@@ -495,7 +499,7 @@ $r^t=r_g^t+r_c^t+r_w^t+r_d^t$
 
    - **Input** environment states(global arg), coefficient
 
-   - **Output** r_c
+   - **Output** $r_c$
 
    - **Func** :
 
@@ -510,7 +514,7 @@ $r^t=r_g^t+r_c^t+r_w^t+r_d^t$
 
    - **Input** environment states(global arg), coefficient
 
-   - **Output** r_w
+   - **Output** $r_w$
 
    - **Func** :
 
@@ -524,7 +528,7 @@ $r^t=r_g^t+r_c^t+r_w^t+r_d^t$
 
    - **Input** environment states(global arg), coefficient
 
-   - **Output** r_t
+   - **Output** $r_t$
 
    - **Func** :
 
@@ -585,6 +589,10 @@ def _compute_reward(self):
 
 <a name="_goal_reached_reward"></a>
 
+```math
+$$r_g^t= \begin{cases}r_{\text {goal }} & \text { if }\left\|p_g^t\right\|<g_m \\ -r_{\text {goal }} & \text { else if } t \geq t_{\text {max }} \\ r_{\text {path }}\left(\left\|p_g^{t-1}\right\|-\left\|p_g^t\right\|\right) & \text { otherwise }\end{cases}
+```
+
 $$r_g^t= \begin{cases}r_{\text {goal }} & \text { if }\left\|p_g^t\right\|<g_m \\ -r_{\text {goal }} & \text { else if } t \geq t_{\text {max }} \\ r_{\text {path }}\left(\left\|p_g^{t-1}\right\|-\left\|p_g^t\right\|\right) & \text { otherwise }\end{cases}$$
 
 ```python
@@ -633,6 +641,10 @@ def _goal_reached_reward(self, r_arrival, r_waypoint):
 
 <a name="_obstacle_collision_punish"></a>
 
+```math
+$$r_c^t= \begin{cases}r_{\text {collision }} & \text { if }\left\|p_o^t\right\| \leq d_r \\ r_{\text {obstacle }}\left(d_m-\left\|p_o^t\right\|\right) & \text { else if }\left\|p_o^t\right\| \leq d_m \\ 0 & \text { otherwise }\end{cases}
+```
+
 $$r_c^t= \begin{cases}r_{\text {collision }} & \text { if }\left\|p_o^t\right\| \leq d_r \\ r_{\text {obstacle }}\left(d_m-\left\|p_o^t\right\|\right) & \text { else if }\left\|p_o^t\right\| \leq d_m \\ 0 & \text { otherwise }\end{cases}$$
 
 ```python
@@ -661,6 +673,10 @@ def _obstacle_collision_punish(self, scan, r_scan, r_collision):
 - angular velocity reward
 
 <a name="_angular_velocity_punish"></a>
+
+```math
+r_w^t= \begin{cases}r_{\text {rotation }}\left|\omega_z^t\right| & \text { if }\left|\omega_z^t\right|>\omega_m \\ 0 & \text { otherwise }\end{cases}
+```
 
 $r_w^t= \begin{cases}r_{\text {rotation }}\left|\omega_z^t\right| & \text { if }\left|\omega_z^t\right|>\omega_m \\ 0 & \text { otherwise }\end{cases}$
 

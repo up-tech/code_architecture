@@ -77,8 +77,6 @@ state = JointState(self.get_full_state(), ob)
 
 #### Reward
 
-$$R_t(s_t^{jn}, a_t)=\left(\begin{align} &-0.25 && \text{$if\ d_t < 0$} \\ &-0.1+d_t/2 && \text{$else\ if\ d_t < 0.2$} \\ &1 && \text{$else\ if\ p_t = p_g$} \\ &0 && \text{$otherwise$} \end{align}\right.$$
-
 ```math
 R_t(s_t^{jn}, a_t) = \begin{cases} -0.25 & \text{if\ $d_t$ < 0} \\ -0.1+d_t/2 & \text{else\ if\ $d_t$ < 0.2} \\ 1 & \text{else\ if\ $p_t$ = $p_g$} \\ 0 & \text{otherwise} \end{cases}
 ```
@@ -381,6 +379,10 @@ ValueNetwork(
 ```
 
 - Assume there are 5 humans and with_global_state is set to true, we can get state:
+
+```math
+\begin{cases}state = [state1, state2, ..., state5] \\ state1 = [self\_data, human1\_data, local\_map1] \\ self\_data = [dg, v\_pref, theta, radius, vx, vy] \\ human1\_data = [px1, py1, vx1, vy1, radius1, da, radius\_sum] \\ local\_map1 = [4 * 4 * 3]\end{cases}
+```
 
 $$\begin{cases}state = [state1, state2, ..., state5] \\ state1 = [self\_data, human1\_data, local\_map1] \\ self\_data = [dg, v\_pref, theta, radius, vx, vy] \\ human1\_data = [px1, py1, vx1, vy1, radius1, da, radius\_sum] \\ local\_map1 = [4 * 4 * 3]\end{cases}$$
 
