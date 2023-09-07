@@ -1,6 +1,6 @@
-### SARL test result
+### SARL Test Result
 
-#### Test Process of SARL
+#### Render Process of SARL
 
 - Attention scores
 
@@ -32,17 +32,19 @@ weights = (scores_exp / torch.sum(scores_exp, dim=1, keepdim=True)).unsqueeze(2)
 self.attention_weights = weights[0, :, 0].data.cpu().numpy()
 ```
 
+#### Simulation Videos
+
+- SARL
+
 ![](images/sarl.gif)
 
-#### Average reward of SARL
+- LM-SARL
+
+![](images/lm_sarl.gif)
+
+#### Average Rewards
 
 <img src="images/average_reward.png" style="zoom: 50%;" />
 
-#### Time to goal
-
-<img src="images/time_to_goal.png" style="zoom: 50%;" />
-
-- 怎么得到ped 1, 2, attention scores
-- interaction pooling
 - sarl + gazebo
 
