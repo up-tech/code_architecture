@@ -22,7 +22,7 @@ Separately using DRL_VO and DWA finish a sequence of navigation tasks. statistic
 
 - each env take 1 group test which contains 25 navigation points
 
-<img src="image/autolab.png" style="zoom:15%;" />
+<img src="Images/autolab.png" style="zoom:15%;" />
 
 | Environment | Method | Success rate | Average time (s) | Average length (m) | Average speed (m/s) |
 | ----------- | ------ | ------------ | ---------------- | ------------------ | ------------------- |
@@ -33,7 +33,7 @@ Separately using DRL_VO and DWA finish a sequence of navigation tasks. statistic
 
 - every couple of env and method takes 4 trials test and each trial contains 25 navigation points
 
-<img src="image/autolab_25ped.png" style="zoom:20%;" />
+<img src="Images/autolab_25ped.png" style="zoom:20%;" />
 
 - result of each trial
 
@@ -54,7 +54,7 @@ Separately using DRL_VO and DWA finish a sequence of navigation tasks. statistic
 - every couple of env and method takes 2 trials test and each trial contains 25 navigation points
 - there is 4 trials test in the paper. I want to save some time, so I only did half of it
 
-<img src="/home/lc/Documents/code_architecture/drl_vo/image/lobby.png" style="zoom:20%;" />
+<img src="Images/lobby.png" style="zoom:20%;" />
 
 | Environment | Method | Success rate | Average time (s) | Average length (m) | Average speed (m/s) |
 | ----------- | ------ | ------------ | ---------------- | ------------------ | ------------------- |

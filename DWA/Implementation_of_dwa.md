@@ -4,7 +4,7 @@
 
 #### Basic idea of DWA (ROS Implemention)
 
-![](image/velocity_sample_of_dwa.png)
+![](Images/velocity_sample_of_dwa.png)
 
 The basic idea of the Dynamic Window Approach (DWA) algorithm is as follows:
 

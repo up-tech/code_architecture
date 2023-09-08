@@ -2,7 +2,7 @@
 
 ### Overview
 
-![](images/overview.png)
+![](Images/overview.png)
 
 ### Code Structure
 
@@ -356,7 +356,7 @@ def reset(self, phase='test', test_case=None):
 
 #### Structure
 
-![](images/value_network.png)
+![](Images/value_network.png)
 
 ```python
 ValueNetwork(
@@ -404,11 +404,11 @@ $$\begin{cases}state &= [state1, state2, ..., state5] \\ state1 &= [self\_data, 
 
 **Details of data process** 
 
-![](images/forward1.png)
+![](Images/forward1.png)
 
 ---
 
-![](images/forward2.png)
+![](Images/forward2.png)
 
 ```pseudocode
 Input: state

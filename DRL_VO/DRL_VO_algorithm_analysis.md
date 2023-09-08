@@ -4,7 +4,7 @@
 
 ## Overview
 
-![](image/architecture_of_drl_vo.png)
+![](Images/architecture_of_drl_vo.png)
 
 **Observation**
 
@@ -191,7 +191,7 @@ $\left.o^t=\left[l^t, p^t, g^t\right)\right]$
 - according to shape of observation, the output observation date's size is 19202
 - 
 
-![](image/lidar_data_process.png)
+![](Images/lidar_data_process.png)
 
 1. [scan_callback](#scan_callback)(self, laserScan_msg) 
    - **Intput**(ranges) **date_size**: array[1080] : distance measurement with 1080 elements
@@ -221,7 +221,7 @@ $\left.o^t=\left[l^t, p^t, g^t\right)\right]$
 
 #### ped_data
 
-![](image/ped_data_process.png)
+![](Images/ped_data_process.png)
 
 1. track_ped_pub.py(file location: drl_vo_nav/drl_vo/src/track_ped_pub.py)
    - **Input** **data_type**: list of ped data(**global frame**), which element contains position and velocity of one ped
@@ -250,7 +250,7 @@ $\left.o^t=\left[l^t, p^t, g^t\right)\right]$
 
 #### goal_data
 
-![](image/goal_data_process.png)
+![](Images/goal_data_process.png)
 
 1. pure_pursuit.py(file location: drl_vo_nav/drl_vo/src/pure_pursuit.py)
 
@@ -880,15 +880,15 @@ def _is_done(self, reward):
 
 - **Overall**
 
-<img src="image/network_structure.png" style="zoom: 33%;" />
+<img src="Images/network_structure.png" style="zoom: 33%;" />
 
 ### Feature Extractor Network
 
-<img src="image/feature_extractor.png" style="zoom: 40%;" />
+<img src="Images/feature_extractor.png" style="zoom: 40%;" />
 
 #### [feature extractor process](#_forward_impl)
 
-<img src="image/network_forward.png" style="zoom: 33%;" />
+<img src="Images/network_forward.png" style="zoom: 33%;" />
 
 1. divide input observation[19202] into three parts ped_pos[12800], scan[6400], goal[2]
 2. reshape and fusion ped_pos and scan to \[1][3]\[80][80]

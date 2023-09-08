@@ -42,6 +42,10 @@ self.attention_weights = weights[0, :, 0].data.cpu().numpy()
 
 ![](images/lm_sarl.gif)
 
+- LSTM
+
+![](images/lstm.gif)
+
 #### Average Rewards
 
 <img src="images/average_reward.png" style="zoom: 50%;" />

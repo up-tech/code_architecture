@@ -161,7 +161,7 @@ def get_reward_and_terminate(self, t):
 
 - Network architecture Setup
 
-![](image/network_of_collision_avoidance.jpg)
+![](Images/network_of_collision_avoidance.jpg)
 
 ```python
 # 代码路径：rl-collision-avoidance/model/net.py
