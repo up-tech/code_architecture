@@ -1,4 +1,4 @@
-## Network structure of GA3C-CADRL
+## Network structure of LSTM-CADRL
 
 ### Overview
 
@@ -45,7 +45,7 @@ $$R_t(s_t^{jn}, a_t) = \begin{cases} -0.25 & \text{if\ $d_t$ < 0} \\ -0.1+0.05 \
 ![](Images/network.png)
 
 ```python
-# network structure of implemention in SARL
+# network structure which is implemented by SARL
 ValueNetwork1(
   (mlp): Sequential(
     (0): Linear(in_features=56, out_features=150, bias=True)
@@ -59,6 +59,49 @@ ValueNetwork1(
   (lstm): LSTM(13, 50, batch_first=True)
 )
 ```
+
+```python
+# network structure which is implemented by ESA
+LstmRlModel(
+  (lstm): LSTM(7, 50, batch_first=True)
+  (mlp): Sequential(
+    (0): Linear(in_features=55, out_features=256, bias=True)
+    (1): ReLU()
+    (2): Linear(in_features=256, out_features=256, bias=True)
+    (3): ReLU()
+  )
+  (mlp_values): Sequential(
+    (0): Linear(in_features=256, out_features=33, bias=True)
+  )
+)
+```
+
+<details>
+  <summary>Code</summary>
+
+```python
+#file lication: esa/models/lstm_rl_model.py
+
+soted_state = self.sort_states(state)
+        
+def sort_states(self, states_batch):
+    sorted_batch = []
+    for batch in states_batch:
+        b = batch.numpy()
+        sb = sorted(b, key=self.dist, reverse=True)
+        sorted_batch.append(sb)
+    return torch.from_numpy(np.array(sorted_batch))
+
+def dist(self, state):
+    if np.all(state[5:7]) == 0:
+        return np.Inf
+
+    # sort human order by decreasing distance to the robot
+    current_dist = (state[5] ** 2 + state[6] ** 2) ** 0.5
+    return current_dist
+```
+
+</details>
 
 - Assume there are 5 humans and with_global_state is set to true, we can get state:
 
@@ -91,5 +134,13 @@ $$\begin{cases}state &= [state1, state2, ..., state5] \\ state1 &= [self\_data, 
 
 </details>
 ```
+
+-->
+
+<!--
+
+dqn.py -?_batch_observe_train
+
+dqn.py->batch_act
 
 -->
