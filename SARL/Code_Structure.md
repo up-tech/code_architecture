@@ -474,10 +474,20 @@ Output: value
 1 Load configuration
 2 Set policy as sarl
 3 while not done do
-4   Generate action through orca.predict(similar as rl training)
-5   Update env
-6 end
+4    for action in action_space do
+5       Calculate self_state at next time step according to single integrator model
+6       Calculate humans_state and next_state_reward at next time step using onestep_lookahead(policy is orca)
+7       Concatenate self_state and humans_state as next_state
+8       Input next_state into network and get next_state_value
+9       Calculate value using next_state_value and next_state_reward
+10      Get value and action pair
+11    Choose action with highest value from pairs as execute action
+11 Update env
+12 end
 ```
+
+- Method to calculate value: $R(s_{t+\Delta t}^{jn},a_t)+{\gamma}^{{\Delta t}\cdot v_{pref}}V(s_{t+\Delta t}^{jn},a_t)$
+- Method to pursuance onestep_lookahead: Using action as input to execute step() function in sim env but don't update env state
 
 <details>
   <summary>Training's code</summary>

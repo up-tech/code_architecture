@@ -36,19 +36,19 @@ self.attention_weights = weights[0, :, 0].data.cpu().numpy()
 
 - SARL
 
-![](images/sarl.gif)
+![](Images/sarl.gif)
 
 - LM-SARL
 
-![](images/lm_sarl.gif)
+![](Images/lm_sarl.gif)
 
 - LSTM
 
-![](images/lstm.gif)
+![](Images/lstm.gif)
 
 #### Average Rewards
 
-<img src="images/average_reward.png" style="zoom: 50%;" />
+<img src="Images/average_reward.png" style="zoom: 50%;" />
 
 - sarl + gazebo
 
