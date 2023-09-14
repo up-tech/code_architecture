@@ -30,7 +30,7 @@ $f$: activation function
 
 **loss function**
 
-cross entropy: $\sum_{i=1}^{T}-\overline{o}_t\log{o_t}$
+cross entropy: $\sum_{i=1}^{T}{-\overline{o}_t\log{o_t}}$
 
 **Backward**
 
@@ -82,7 +82,7 @@ $f_t=\sigma(W_f\cdot[h_{t-1}, x_t]+b_f)$
 
 $i_t=\sigma(W_i\cdot[h_{t-1},x_t]+b_i$
 
-$\widetilde{C}_t = \tanh{(W_C\cdot[h_{t-1},x_t]+b_C)}$
+$$\widetilde{C}_t = \tanh{(W_C\cdot[h_{t-1},x_t]+b_C)}$$
 
 **Cell State**
 
