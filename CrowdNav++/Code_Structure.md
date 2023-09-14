@@ -30,17 +30,21 @@ dict = {'robot_node':  #shape(1, 7)
 
 #### Reward
 
-```math
-appending
-```
-
 $$r_{pot} = 2(-d_{goal}^t+d_{gial}^{t-1})$$
 
 $$r_{pred}^i(s_t)=\min_{k=1,...,K}(\text{collision}_i^{t+k} \frac{r_c}{2^k})$$
 
 $$r_{pred}(s_t)=\min_{i=1,...,n}r_{pred}^i(s_t)$$
 
+```math
+R_t(s_t^{jn}, a_t) = \begin{cases} 10 & \text{if\ $s_t$ $\in$ $S_{goal}$}  \\ r_c & \text{if\ $s_t$ = $S_{fail}$} \\ r_{pot}(s_t)+r_{pred}(s_t) & \text{otherwise} \end{cases}
+```
+
+<!--
+
 $$R_t(s_t^{jn}, a_t) = \begin{cases} 10 & \text{if\ $s_t$ $\in$ $S_{goal}$}  \\ r_c & \text{if\ $s_t$ = $S_{fail}$} \\ r_{pot}(s_t)+r_{pred}(s_t) & \text{otherwise} \end{cases}$$
+
+-->
 
 #### Action
 
