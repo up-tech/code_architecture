@@ -1,39 +1,28 @@
-## Code structure of ST2
+## Code structure of ESA
 
 ### Overview
 
+![](Images/overview.png)
+
 ### Code Structure
 
+<details>
+  <summary>Code Structure</summary>
+
 ```
-├── crowd_nav
-│   ├── configs
-│   │   ├── env.config
-│   │   ├── policy.config
-│   │   └── train.config
-│   ├── data
-│   │   └── text
-│   │       ├── env.config
-│   │       ├── il_model.pth
-│   │       ├── output.log
-│   │       ├── policy.config
-│   │       └── train.config
-│   ├── policy
-│   │   ├── cadrl.py
-│   │   ├── lstm_rl.py
-│   │   ├── multi_human_rl.py
-│   │   ├── policy_factory.py
-│   │   ├── sarl.py
-│   │   └── ST2.py
-│   ├── test.py
-│   ├── train.py
-│   └── utils
-│       ├── explorer.py
-│       ├── memory.py
-│       ├── plot.py
-│       └── trainer.py
-├── crowd_sim
+├── configs
+│   ├── agent.cfg
+│   ├── env.config
+│   ├── explorer.cfg
+│   ├── optimizer.cfg
+│   ├── policy.config
+│   ├── replay_buffer.cfg
+│   └── train.config
+├── crowd_env
 │   ├── envs
+│   │   ├── crowd_env.py
 │   │   ├── crowd_sim.py
+│   │   ├── env_util.py
 │   │   ├── policy
 │   │   │   ├── linear.py
 │   │   │   ├── orca.py
@@ -47,24 +36,178 @@
 │   │       ├── robot.py
 │   │       ├── state.py
 │   │       └── utils.py
-│   └── README.md
-├── LICENSE
-└── setup.py
-
+├── crowd_nav
+│   ├── first_step.py
+│   ├── global_util.py
+│   ├── policy
+│   │   ├── cadrl.py
+│   │   ├── esa.py
+│   │   ├── lstm_rl.py
+│   │   ├── multi_human_rl.py
+│   │   ├── policy_factory.py
+│   │   └── sarl.py
+│   ├── test.py
+│   ├── test_runner.py
+│   ├── train.py
+│   ├── train_runner.py
+│   └── utils
+│       ├── explorer.py
+│       ├── __init__.py
+│       ├── memory2.py
+│       ├── plot.py
+│       ├── trainer.py
+│       └── util.py
+├── models
+│   ├── esa_model.py
+│   ├── lstm_rl_model.py
+│   └── sarl_model.py
+├── pf_helper
+│   ├── agent_builder.py
+│   ├── explorer_builder.py
+│   ├── network_builder.py
+│   ├── optimizer_builder.py
+│   ├── pf_runner.py
+│   └── replay_buffer_builder.py
+├── pfrl
+│   ├── action_value.py
+│   ├── agent.py
+│   ├── agents
+│   │   ├── a2c.py
+│   │   ├── a3c.py
+│   │   ├── acer.py
+│   │   ├── al.py
+│   │   ├── categorical_double_dqn.py
+│   │   ├── categorical_dqn.py
+│   │   ├── ddpg.py
+│   │   ├── double_dqn.py
+│   │   ├── double_pal.py
+│   │   ├── dpp.py
+│   │   ├── dqn.py
+│   │   ├── iqn.py
+│   │   ├── pal.py
+│   │   ├── ppo.py
+│   │   ├── reinforce.py
+│   │   ├── soft_actor_critic.py
+│   │   ├── state_q_function_actor.py
+│   │   ├── td3.py
+│   │   └── trpo.py
+│   ├── collections
+│   │   ├── persistent_collections.py
+│   │   ├── prioritized.py
+│   │   └── random_access_queue.py
+│   ├── distributions
+│   │   ├── delta.py
+│   ├── env.py
+│   ├── envs
+│   │   ├── abc.py
+│   │   ├── multiprocess_vector_env.py
+│   │   └── serial_vector_env.py
+│   ├── experiments
+│   │   ├── evaluation_hooks.py
+│   │   ├── evaluator.py
+│   │   ├── hooks.py
+│   │   ├── __init__.py
+│   │   ├── prepare_output_dir.py
+│   │   ├── train_agent_async.py
+│   │   ├── train_agent_batch.py
+│   │   └── train_agent.py
+│   ├── explorer.py
+│   ├── explorers
+│   │   ├── additive_gaussian.py
+│   │   ├── additive_ou.py
+│   │   ├── boltzmann.py
+│   │   ├── epsilon_greedy.py
+│   │   ├── greedy.py
+│   ├── functions
+│   │   ├── bound_by_tanh.py
+│   │   ├── __init__.py
+│   │   ├── lower_triangular_matrix.py
+│   ├── initializers
+│   │   ├── chainer_default.py
+│   │   ├── lecun_normal.py
+│   ├── nn
+│   │   ├── atari_cnn.py
+│   │   ├── bound_by_tanh.py
+│   │   ├── branched.py
+│   │   ├── concat_obs_and_action.py
+│   │   ├── empirical_normalization.py
+│   │   ├── __init__.py
+│   │   ├── lmbda.py
+│   │   ├── mlp_bn.py
+│   │   ├── mlp.py
+│   │   ├── noisy_chain.py
+│   │   ├── noisy_linear.py
+│   │   ├── recurrent_branched.py
+│   │   ├── recurrent.py
+│   │   └── recurrent_sequential.py
+│   ├── optimizers
+│   │   └── rmsprop_eps_inside_sqrt.py
+│   ├── policies
+│   │   ├── deterministic_policy.py
+│   │   ├── gaussian_policy.py
+│   │   └── softmax_policy.py
+│   ├── policy.py
+│   ├── q_function.py
+│   ├── q_functions
+│   │   ├── dueling_dqn.py
+│   │   ├── state_action_q_functions.py
+│   │   └── state_q_functions.py
+│   ├── replay_buffer.py
+│   ├── replay_buffers
+│   │   ├── episodic.py
+│   │   ├── persistent.py
+│   │   ├── prioritized_episodic.py
+│   │   ├── prioritized.py
+│   │   └── replay_buffer.py
+│   ├── testing.py
+│   ├── utils
+│   │   ├── ask_yes_no.py
+│   │   ├── async_.py
+│   │   ├── batch_states.py
+│   │   ├── clip_l2_grad_norm.py
+│   │   ├── conjugate_gradient.py
+│   │   ├── contexts.py
+│   │   ├── copy_param.py
+│   │   ├── env_modifiers.py
+│   │   ├── __init__.py
+│   │   ├── is_return_code_zero.py
+│   │   ├── mode_of_distribution.py
+│   │   ├── random.py
+│   │   ├── random_seed.py
+│   │   ├── recurrent.py
+│   │   ├── reward_filter.py
+│   │   └── stoppable_thread.py
+│   └── wrappers
+│       ├── atari_wrappers.py
+│       ├── cast_observation.py
+│       ├── continuing_time_limit.py
+│       ├── __init__.py
+│       ├── normalize_action_space.py
+│       ├── randomize_action.py
+│       ├── render.py
+│       ├── scale_reward.py
+│       └── vector_frame_stack.py
+├── plot_success_rate.py
+├── requirements.txt
+├── run_dqn.py
+├── test_pool.py
+└── visualize_test.py
 ```
+
+</details>
 
 ### Environment Setup
 
 #### Observation
 
-self_state:        $s = [g_x, g_y, v_{pref}, \theta, v_x, v_y, r, p_x, p_y]$
+self_state:        $s = [d_g, v_{pref}, v_x, v_y, r]$
 
-human_state:   $w_i = [p_x, p_y, v_x, v_y, r_i, v_{pref}^i]$
+human_state:   $w_i = [p_x, p_y, v_x, v_y, d^i, r^i, r+r^i]$
 
 **Code**
 
 ```python
-#file location: CrowdNav/crowd_sim/envs/utils/robot.py
+#file location: crowd_env/envs/utils/robot.py
 state = JointState(self.get_full_state(), ob)
 ```
 
@@ -84,7 +227,7 @@ $$R_t(s_t^{jn}, a_t) = \begin{cases} -0.25 & \text{if\ $d_t$ < 0} \\ -0.1+d_t/2 
   <summary>Code</summary>
 
 ```python
-#file location: CrowdNav/crowd_sim/envs/utils/crowd_sim.py
+#file location: Crowd_env/envs/crowd_sim.py
 if self.global_time >= self.time_limit - 1:
     reward = 0
     done = True
@@ -111,36 +254,16 @@ else:
 
 #### Action
 
-- The action space consists of 80 discrete actions: 
-  1. 5 speeds exponentially spaced between $(0, v_{pref}]$
-  2. 16 headings evenly spaced between $[0, 2\pi)$
-
-<details>
-  <summary>Code</summary>
-
-```python
-#file location: CrowdNav/crowd_nav/policy/cadrl.py
-
-speeds = [(np.exp((i + 1) / self.speed_samples) - 1) / (np.e - 1) * v_pref for i in range(self.speed_samples)]
-if holonomic:
-    rotations = np.linspace(0, 2 * np.pi, self.rotation_samples, endpoint=False)
-else:
-    rotations = np.linspace(-np.pi / 4, np.pi / 4, self.rotation_samples)
-
-action_space = [ActionXY(0, 0) if holonomic else ActionRot(0, 0)]
-```
-
-</details>
+- The action space consists of 33 discrete actions: 
+  1. 4 speeds exponentially spaced between $(0, v_{pref}]$
+  2. 8 headings evenly spaced between $(0, 2\pi)$
+  3. (0, 0)
 
 #### Terminal condition
 
 - Timeout
 - Reaching goal
 - Collision
-
-**Code**
-
-- The code's location is the same as reward
 
 #### Dynamics
 
@@ -168,42 +291,7 @@ Output: ob reward done info
 
 #### Structure
 
-![](Images/st2_network_structure.png)
-
-![](Images/st_transformer.png)
-
-- Take 5 people as example, we can see the process of spatial does not affect temporal dimension
-
-![](Images/data_process.png)
-
-- Spatial data: each human and robot state pair
-
-- Temporal data: humans and robot state at $t-\Delta t, t, t+\Delta t$
-
-- How to adapt to a variable number of humans：
-
-  The number of humans of is constant at beginning, it can't handle variable condition
-
-  ```python
-  x = x.reshape(-1, 3, 5, 13) #Only consider 5 people
-  ```
-
-- How to get state $t+\Delta t$
-
-  Using constant velocity model
-
-  Thus, simulation is updated by policy, robot(st2) and humans(orca).  however, states are got by prediction
-
-  ```python
-  if self.robot.sensor == 'coodinates':
-      ob = [human.get_next_observable_state(action) for human, action in zip(self.humans, human_actions)]
-  
-  def compute_position(self, action, delta_t):
-  self.check_validity(action)
-  if self.kinematics == 'holonomic':
-      px = self.px + action.vx * delta_t
-      py = self.py + action.vy * delta_t 
-  ```
+![](Images/framework.png)
 
 - Data Process
 
@@ -282,7 +370,7 @@ Spatial_Temporal_Transformer(
 ```pseudocode
 1 Load configuration
 2 Implement memory model trainer explorer
-3 Set policy as ST2
+3 Set policy as ESA
 /* start imitation learning */
 4 for episodes = 1, K IL do
 5   while not done do
