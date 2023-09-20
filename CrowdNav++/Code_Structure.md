@@ -63,8 +63,6 @@ self.action_space = gym.spaces.Box(-high, high, dtype=np.float32)
 
 ### Value Network
 
-#### Structure
-
 ![](Images/network_structure.png)
 
 - temporal解释
