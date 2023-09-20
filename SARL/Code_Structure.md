@@ -357,11 +357,10 @@ def reset(self, phase='test', test_case=None):
 ![](Images/value_network.png)
 
 The value function:
-$$V=f_v(s,c)$$
-- $c=\sum_{i=1}^n\text{softmax}(\alpha_i)h_i$
-  -- $\alpha_i=f_\alpha(e_i,e_m)$
-  -- $h_i=f_h(e_i)$
-    --- $e_i=f_e(s,w_i,M_i)$
+$$V=f_v(s,c),\ c=\sum_{i=1}^{n} softmax(\alpha_i)h_i$$
+- $\alpha_i=f_\alpha(e_i,e_m)$
+- $h_i=f_h(e_i)$
+- $e_i=f_e(s,w_i,M_i)$
 
 ```python
 ValueNetwork(
