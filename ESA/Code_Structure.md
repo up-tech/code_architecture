@@ -289,8 +289,6 @@ Output: ob reward done info
 
 ### Value Network
 
-#### Structure
-
 ![](Images/framework.png)
 
 - Data Process
