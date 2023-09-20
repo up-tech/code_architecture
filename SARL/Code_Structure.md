@@ -354,8 +354,6 @@ def reset(self, phase='test', test_case=None):
 
 ### Value Network
 
-#### Structure
-
 ![](Images/value_network.png)
 
 ```python
