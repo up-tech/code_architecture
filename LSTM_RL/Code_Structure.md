@@ -40,8 +40,6 @@ $$R_t(s_t^{jn}, a_t) = \begin{cases} -0.25 & \text{if\ $d_t$ < 0} \\ -0.1+0.05 \
 
 ### Value Network
 
-#### Structure
-
 ![](Images/network.png)
 
 ```python
