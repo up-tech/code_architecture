@@ -254,7 +254,7 @@ else:
 
 #### Action
 
-- The action space consists of 33 discrete actions: 
+- The action space consists of **33** discrete actions: 
   1. 4 speeds exponentially spaced between $(0, v_{pref}]$
   2. 8 headings evenly spaced between $(0, 2\pi)$
   3. (0, 0)
@@ -276,7 +276,7 @@ Input: global arguments, action: a
 3 else
 4   Get all humans’ state si
 5 end
-6 Calculate all humans’ action a i using orca
+6 Calculate all humans’ action a_i using orca
 7 Detection collision between robot and humans
 8 Detection collision between humans (just for warning)
 9 Check if reaching the goal
@@ -291,75 +291,48 @@ Output: ob reward done info
 
 #### Structure
 
-![](Images/framework.png)
+![](Images/network.png)
 
-- Data Process
+- Dist is used to sort humans state: $$dist = w_c{({p_x'}^2+{p_y'}^2)}^\frac{1}{2}+(1-w_c){({(p_x'+v_x'\Delta t)}^2+{(p_y'+v_y'\Delta t)}^2)}^\frac{1}{2}$$
+- $$w_c = 0.8$$
+
+**Layers Structure**
 
 ```python
-Spatial_Temporal_Transformer(
-  (Embedding): Embedding(
-    (embedding): Linear(in_features=13, out_features=128, bias=True)
-    (dropout): Dropout(p=0.1, inplace=False)
+EsaModel(
+  (mlp21): Sequential(
+    (0): Linear(in_features=12, out_features=128, bias=True)
+    (1): ReLU()
+    (2): Linear(in_features=128, out_features=64, bias=True)
+    (3): ReLU()
   )
-  
-  (temporal_encoder): Encoder(
-    (layers): ModuleList(
-      (0): EncoderLayer(
-        (attn_norm): LayerNorm((128,), eps=1e-05, elementwise_affine=True)
-        (attn): Attention(
-          (qkv): Linear(in_features=128, out_features=384, bias=True)
-          (out): Linear(in_features=128, out_features=128, bias=True)
-          (attn_dropout): Dropout(p=0.1, inplace=False)
-          (proj_dropout): Dropout(p=0.1, inplace=False)
-          (softmax): Softmax(dim=-1)
-          (avgpool): AdaptiveAvgPool1d(output_size=1)
-        )
-        (mlp_norm): LayerNorm((128,), eps=1e-05, elementwise_affine=True)
-        (mlp): Mlp(
-          (fc1): Linear(in_features=128, out_features=512, bias=True)
-          (fc2): Linear(in_features=512, out_features=128, bias=True)
-          (act): GELU(approximate='none')
-          (dropout1): Dropout(p=0.1, inplace=False)
-          (dropout2): Dropout(p=0.1, inplace=False)
-        )
-        (drop_path): DropPath()
-      )
-    )
-    (encoder_norm): LayerNorm((128,), eps=1e-05, elementwise_affine=True)
+  (mlp23): Sequential(
+    (0): Linear(in_features=69, out_features=64, bias=True)
+    (1): ReLU()
+    (2): Linear(in_features=64, out_features=64, bias=True)
   )
-  
-  (Spatial_encoder): Encoder(
-    (layers): ModuleList(
-      (0): EncoderLayer(
-        (attn_norm): LayerNorm((128,), eps=1e-05, elementwise_affine=True)
-        (attn): Attention(
-          (qkv): Linear(in_features=128, out_features=384, bias=True)
-          (out): Linear(in_features=128, out_features=128, bias=True)
-          (attn_dropout): Dropout(p=0.1, inplace=False)
-          (proj_dropout): Dropout(p=0.1, inplace=False)
-          (softmax): Softmax(dim=-1)
-          (avgpool): AdaptiveAvgPool1d(output_size=1)
-        )
-        (mlp_norm): LayerNorm((128,), eps=1e-05, elementwise_affine=True)
-        (mlp): Mlp(
-          (fc1): Linear(in_features=128, out_features=512, bias=True)
-          (fc2): Linear(in_features=512, out_features=128, bias=True)
-          (act): GELU(approximate='none')
-          (dropout1): Dropout(p=0.1, inplace=False)
-          (dropout2): Dropout(p=0.1, inplace=False)
-        )
-        (drop_path): DropPath()
-      )
-    )
-    (encoder_norm): LayerNorm((128,), eps=1e-05, elementwise_affine=True)
+  (attention): Sequential(
+    (0): Linear(in_features=64, out_features=64, bias=True)
+    (1): ReLU()
+    (2): Linear(in_features=64, out_features=64, bias=True)
+    (3): ReLU()
+    (4): Linear(in_features=64, out_features=1, bias=True)
   )
-  
-  (avgpool): AdaptiveAvgPool1d(output_size=1)
-  (value_Linear_1): Linear(in_features=134, out_features=256, bias=True)
-  (act): GELU(approximate='none')
-  (value_Linear_2): Linear(in_features=256, out_features=128, bias=True)
-  (value_Linear_3): Linear(in_features=128, out_features=1, bias=True)
-  (softmax): Softmax(dim=-1)
+  (lstm): LSTM(7, 50, batch_first=True)
+  (mlp11): Sequential(
+    (0): Linear(in_features=55, out_features=256, bias=True)
+    (1): ReLU()
+    (2): Linear(in_features=256, out_features=128, bias=True)
+    (3): ReLU()
+    (4): Linear(in_features=128, out_features=64, bias=True)
+  )
+  (mlp_final2): Sequential(
+    (0): Linear(in_features=128, out_features=128, bias=True)
+    (1): ReLU()
+    (2): Linear(in_features=128, out_features=100, bias=True)
+    (3): ReLU()
+    (4): Linear(in_features=100, out_features=33, bias=True)
+  )
 )
 ```
 
@@ -371,40 +344,28 @@ Spatial_Temporal_Transformer(
 1 Load configuration
 2 Implement memory model trainer explorer
 3 Set policy as ESA
-/* start imitation learning */
-4 for episodes = 1, K IL do
-5   while not done do
-6     Generate action through orca
-7     Push state, action, reward in memory
-8   end
-9 end
-10 for epoch = 1, M IL do
-11   Get one batch data from memory
-12   Calculate loss between reward and value(return through model)
-13   Using SGD execute gradient descent and update model’s parameters
-14 end
 /* start reinforcement learning */
-15 Dynamically set epsilon while training
-16 for episodes = 1, K RL do
-17   while not done do
-18     Generate action through sampling and scoring from action space
-19     Collect data into memory
-20   end
-21   Using SGD execute gradient descent
-22 end
-23 Saving model’s parameters
+4 Dynamically set epsilon while training
+5 for episodes = 1, K RL do
+6   while not done do
+7     Generate action through randomly sampling or choosing from action space
+8     Collect data into memory
+9   end
+10   Using SGD execute gradient descent
+11 end
+12 Saving model’s parameters
 ```
 
 **Details of action generated while RL**
 
-- Random sample action from action space when probability less than epsilon
-- Or $a_t = argmax_{a_t\in A}R(s_{t+\Delta t}^{jn},a_t)+{\gamma}^{{\Delta t}\cdot v_{pref}}V(s_{t+\Delta t}^{jn},a_t)$
+- Randomly sample action from action space when probability less than epsilon
+- Or choosing by: $a_t = argmax_{a_t\in A}R(s_t,a_t)+{\gamma} \max_{a'} Q^{\star}(s_{t+\Delta t},a')$
 
 ### Testing Process
 
 ```pseudocode
 1 Load configuration
-2 Set policy as sarl
+2 Set policy as ESA
 3 while not done do
 4    for action in action_space do
 5       Calculate self_state at next time step according to single integrator model
@@ -418,8 +379,7 @@ Spatial_Temporal_Transformer(
 12 end
 ```
 
-- Method to calculate value: $R(s_{t+\Delta t}^{jn},a_t)+{\gamma}^{{\Delta t}\cdot v_{pref}}V(s_{t+\Delta t}^{jn},a_t)$
-- Method to pursuance onestep_lookahead: Using action as input to execute step() function in sim env but don't update env state
+- Method to calculate value: $a_t = argmax_{a_t\in A}R(s_t,a_t)+{\gamma} \max_{a'} Q^{\star}(s_{t+\Delta t},a')$
 
 <!--
 

@@ -67,10 +67,18 @@ self.action_space = gym.spaces.Box(-high, high, dtype=np.float32)
 
 ![](Images/network_structure.png)
 
-- temporal解释
-- human size
+- robot state:
+  - robot_node: [self.px, self.py, self.radius, self.gx, self.gy, self.v_pref, self.theta]
+  - temporal_edges: [self.vx, self.vy]
+- human state:
+  - spatial_edges: [px1, py1, ..., px6, py6], 1 pair of current and 5 pairs of prediction 
+
+- How to handle changeable human number
+  - 
+
 - GRU
-- 
+
+
 
 ```python
 Policy(
@@ -147,7 +155,7 @@ Policy(
   <summary>Code</summary>
 
 ```python
-appending
+pending
 ```
 
 </details>

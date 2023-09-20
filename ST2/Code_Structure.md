@@ -205,7 +205,7 @@ Output: ob reward done info
       py = self.py + action.vy * delta_t 
   ```
 
-- Data Process
+**Layers Structure**
 
 ```python
 Spatial_Temporal_Transformer(

@@ -358,6 +358,8 @@ def reset(self, phase='test', test_case=None):
 
 ![](Images/value_network.png)
 
+**Layers Structure**
+
 ```python
 ValueNetwork(
   (mlp1): Sequential(
