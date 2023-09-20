@@ -61,7 +61,7 @@ self.action_space = gym.spaces.Box(-high, high, dtype=np.float32)
 - Reaching goal
 - Collision
 
-### Value Network
+### Value Network Architecture
 
 ![](Images/network_structure.png)
 
