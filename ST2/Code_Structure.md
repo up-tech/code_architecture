@@ -166,8 +166,6 @@ Output: ob reward done info
 
 ### Value Network
 
-#### Structure
-
 ![](Images/st2_network_structure.png)
 
 ![](Images/st_transformer.png)
