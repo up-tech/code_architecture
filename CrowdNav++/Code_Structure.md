@@ -67,6 +67,11 @@ self.action_space = gym.spaces.Box(-high, high, dtype=np.float32)
 
 ![](Images/network_structure.png)
 
+- temporal解释
+- human size
+- GRU
+- 
+
 ```python
 Policy(
   (base): selfAttn_merge_SRNN(
