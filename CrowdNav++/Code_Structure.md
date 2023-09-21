@@ -71,12 +71,26 @@ self.action_space = gym.spaces.Box(-high, high, dtype=np.float32)
 - human state:
   - spatial_edges: [px1, py1, ..., px6, py6], 1 pair of current and 5 pairs of prediction 
 
-- How to handle changeable human number
-  - 
+![](Images/ST_Attntion.png)
+
+- Tips for nn.multihead attn: (*L*,*N*,*E*) when `batch_first=False` where *L* is the target sequence length
+
+- How to handle changeable human number:
+
+  - Set a max human number (20 for the paper)
+
+  - Sort Input by dist
+  - Add mask
+
+  ```python
+  #e.g. mask
+  tensor([[False, False, False, False, False, False, False, False, False,  True,
+            True,  True,  True,  True,  True,  True,  True,  True,  True,  True]]
+  ```
 
 - GRU
 
-
+**Layers Structure**
 
 ```python
 Policy(
