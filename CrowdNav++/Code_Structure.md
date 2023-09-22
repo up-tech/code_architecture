@@ -71,7 +71,7 @@ self.action_space = gym.spaces.Box(-high, high, dtype=np.float32)
 - human state:
   - spatial_edges: [px1, py1, ..., px6, py6], 1 pair of current and 5 pairs of prediction 
 
-![](Images/ST_Attntion.png)
+![](Images/ST_Attention.png)
 
 - Tips for nn.multihead attn: (*L*,*N*,*E*) when `batch_first=False` where *L* is the target sequence length
 
