@@ -73,6 +73,54 @@ self.action_space = gym.spaces.Box(-high, high, dtype=np.float32)
 
 ![](Images/ST_Attention.png)
 
+```math
+Q = \begin{bmatrix}
+ q_1 & q_2 & q_3\\
+ q_1 & q_2 & q_3\\
+ q_1 & q_2 & q_3
+\end{bmatrix}, K = \begin{bmatrix}
+ k_1 & k_2 & k_3\\
+ k_1 & k_2 & k_3\\
+ k_1 & k_2 & k_3
+\end{bmatrix}, V = \begin{bmatrix}
+ v_1 & v_2 & v_3\\
+ v_1 & v_2 & v_3\\
+ v_1 & v_2 & v_3
+\end{bmatrix}
+```
+
+```math
+(Q_{mean})^\top\cdot K_{mean} \cdot V = \begin{bmatrix}
+ v_1\cdot q_1(k_1 + k_2 + k3) & v_2\cdot q_1(k_1 + k_2 + k3) & v_3\cdot q_1(k_1 + k_2 + k3)\\
+ v_1\cdot q_2(k_1 + k_2 + k3) & v_2\cdot q_2(k_1 + k_2 + k3) & v_3\cdot q_2(k_1 + k_2 + k3)\\
+ v_1\cdot q_3(k_1 + k_2 + k3) & v_2\cdot q_3(k_1 + k_2 + k3) & v_3\cdot q_3(k_1 + k_2 + k3)
+\end{bmatrix}
+```
+
+<!--
+
+$$Q = \begin{bmatrix}
+ q_1 & q_2 & q_3\\
+ q_1 & q_2 & q_3\\
+ q_1 & q_2 & q_3
+\end{bmatrix}, K = \begin{bmatrix}
+ k_1 & k_2 & k_3\\
+ k_1 & k_2 & k_3\\
+ k_1 & k_2 & k_3
+\end{bmatrix}, V = \begin{bmatrix}
+ v_1 & v_2 & v_3\\
+ v_1 & v_2 & v_3\\
+ v_1 & v_2 & v_3
+\end{bmatrix}$$
+
+$$(Q_{mean})^\top\cdot K_{mean} \cdot V = \begin{bmatrix}
+ v_1\cdot q_1(k_1 + k_2 + k_3) & v_2\cdot q_1(k_1 + k_2 + k_3) & v_3\cdot q_1(k_1 + k_2 + k_3)\\
+ v_1\cdot q_2(k_1 + k_2 + k_3) & v_2\cdot q_2(k_1 + k_2 + k_3) & v_3\cdot q_2(k_1 + k_2 + k_3)\\
+ v_1\cdot q_3(k_1 + k_2 + k_3) & v_2\cdot q_3(k_1 + k_2 + k_3) & v_3\cdot q_3(k_1 + k_2 + k_3)
+\end{bmatrix}$$
+
+-->
+
 - Tips for nn.multihead attn: (*L*,*N*,*E*) when `batch_first=False` where *L* is the target sequence length
 
 - How to handle changeable human number:
@@ -89,6 +137,38 @@ self.action_space = gym.spaces.Box(-high, high, dtype=np.float32)
   ```
 
 - GRU
+
+- Self attention parameters
+
+```
+Conv2d()参数个数计算
+Param = in_c * out_c * k * k + out_c  
+in_c 表示输入通道维度       
+out_c 表示输出通道维度       
+k 表示卷积核大小
+
+Linear()参数个数计算
+Param = in_f * out_f + out_f
+in_f 表示输入特征维度
+out_f 表示输出特征维度
+
+1536  linear 12*128         
+128
+65536  linear 128*512         
+512
+
+262144  linear 512*512         
+512
+262144  linear 512*512         
+512
+262144  linear 512*512         
+512
+
+786432  
+1536
+262144
+512
+```
 
 **Layers Structure**
 
