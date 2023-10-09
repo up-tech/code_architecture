@@ -74,6 +74,8 @@ python plot.py
 
 #### Result
 
+![](Images/mean_rewards.svg)
+
 ![](Images/all_attention.gif)
 
 ```
@@ -88,6 +90,5 @@ goal: 1.00
 
 #### To Do List
 
-- Add Tensorboard to visualize loss function
 - Check the method of calculating weights
 
