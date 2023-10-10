@@ -358,8 +358,8 @@ def reset(self, phase='test', test_case=None):
 
 **Layers Structure**
 
-The value function: $V=f(s^r,s^h)$, where $$s^h=\sum_{i=1}^{n} \text{softmax}(\alpha_i)V^h_i$$
-- $\alpha_i=f_\alpha(e_i,e_m)$ with $e_i=f_e(s^r,s^h_i)$ and $e_m=1/n\sum_{i}e_i$
+The value function: $s=(s^r,e^h)$, where $$e^h=\sum_{i=1}^{n} \text{softmax}(\alpha_i)V^h_i$$
+- $\alpha_i=\phi_1(e_i,e_m)$ with $e_i=\phi_2(s^r,s^h_i)$ and $e_m=1/n\sum_{i}e_i$
 - $V^h_i=\phi(e_i)$ 
 
 ```python
